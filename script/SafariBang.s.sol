@@ -11,7 +11,7 @@ contract SafariBangScript is Script {
         vm.startBroadcast();
 
         SafariBang safaribang = new SafariBang("Safari Bang", "SAFABA", "https://ipfs.io/ipfs/");
-        
+
         vm.stopBroadcast();
     }
 }
