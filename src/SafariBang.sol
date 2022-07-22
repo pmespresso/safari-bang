@@ -47,6 +47,10 @@ contract SafariBang is ERC721, MultiOwnable {
     function fuck() public payable returns (bool) {}
     function flee() public payable returns (bool) {}
 
+    function omfgAnAsteroidOhNo() public returns (bool) {
+        
+    }
+
     function mintTo(address to) public payable returns (uint256) {
         if (msg.value < MINT_PRICE) {
             revert MintPriceNotPaid();

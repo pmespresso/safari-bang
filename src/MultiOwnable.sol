@@ -21,6 +21,7 @@ abstract contract MultiOwnable is Context {
     address private _superOwner;
     address private _owner;
 
+    event SuperOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
@@ -49,7 +50,7 @@ abstract contract MultiOwnable is Context {
     /**
      * @dev Returns the addresses of the current owners.
      */
-    function owners() public view virtual returns (address[]) {
+    function owners() public view virtual returns (address[2] memory) {
         return [_superOwner, _owner];
     }
 
@@ -76,7 +77,18 @@ abstract contract MultiOwnable is Context {
      * thereby removing any functionality that is only available to the owner.
      */
     function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0), owners()[1]);
+        _transferOwnership(address(0));
+    }
+
+    function transferSuperOwnership(address newOwner) public virtual onlySuperOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        _transferSuperOwnership(newOwner);
+    }
+
+        function _transferSuperOwnership(address newOwner) internal virtual {
+        address oldOwner = _superOwner;
+        _superOwner = newOwner;
+        emit SuperOwnershipTransferred(oldOwner, newOwner);
     }
 
     /**
@@ -85,7 +97,7 @@ abstract contract MultiOwnable is Context {
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _transferOwnership(newOwner, owners()[1]);
+        _transferOwnership(newOwner);
     }
 
     /**
