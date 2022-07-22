@@ -21,8 +21,7 @@ contract SafariBang is ERC721, MultiOwnable {
     // _superOwner will always be the contract address, in order to clear state with asteroid later.
     enum EntittyType {
         DOMESTICATED_ANIMAL, // _owner is some Eth address
-        WILD_ANIMAL, // _owner is SafariBang contract address
-        EMPTY
+        WILD_ANIMAL // _owner is SafariBang contract address
     }
 
     enum Species {
@@ -51,21 +50,29 @@ contract SafariBang is ERC721, MultiOwnable {
     struct Entitty {
         EntittyType entittyType;
         Species species; // this determines the image
-        uint256 id;
-        uint256 size;
-        uint256 strength;
-        uint256 speed;
-        uint256 libido;
+        uint64 id;
+        uint32 size;
+        uint32 strength; // P(successfully "fight")
+        uint32 speed; // P(successfully "flee")
+        uint32 fertility; // P(successfully "fuck" and conceive)
+        uint32 anxiety; // P(choose "flee" | isWildAnimal())
+        uint32 aggression; // P(choose "fight" | isWildAnimal())
+        uint32 libido; // P(choose "fuck" | isWildAnimal())
         bool gender; // animals are male or female, no in-between ladyboy shit like in our stupid IRL world
-        uint32[][] position;
+        uint32[][] position; // x,y coordinates on the map
         address owner;
     }
 
-    Entitty[128][128] public safariMap;
+    uint64[128][128] public safariMap; // just put the id's to save space?
+    mapping (uint64 => Entitty) internal idToEntitty; // then look it up here
 
     constructor(string memory _name, string memory _symbol, string memory _baseURI) ERC721(_name, _symbol) {
         baseURI = _baseURI;
         transferSuperOwnership(msg.sender);
+    }
+
+    function move() internal returns (uint32[][] memory) {
+
     }
 
     function fight() public payable returns (bool) {}
