@@ -109,7 +109,7 @@ contract SafariBangTest is Test {
 
         assertEq(address(safaribang).balance, safaribang.MINT_PRICE());
 
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("MultiOwnable: caller is not a super owner");
         vm.startPrank(address(0xd3ad));
         safaribang.withdrawPayments(payable(address(0xd3ad)));
         vm.stopPrank();

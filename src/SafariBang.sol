@@ -68,7 +68,6 @@ contract SafariBang is ERC721, MultiOwnable {
 
     constructor(string memory _name, string memory _symbol, string memory _baseURI) ERC721(_name, _symbol) {
         baseURI = _baseURI;
-        transferSuperOwnership(msg.sender);
     }
 
     function move() internal returns (uint32[][] memory) {
