@@ -3,6 +3,8 @@ pragma solidity ^0.8.10;
 
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
+import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import "forge-std/console.sol";
 
 import "./MultiOwnable.sol";
 
@@ -11,12 +13,15 @@ error MaxSupply();
 error NonExistentTokenUri();
 error WithdrawTransfer();
 
-contract SafariBang is ERC721, MultiOwnable {
+contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     using Strings for uint256;
     string public baseURI;
     uint256 public currentTokenId = 0;
-    uint256 public constant TOTAL_SUPPLY = 10_000;
+    uint256 public constant TOTAL_SUPPLY = 12_500; // map is 128 * 128 = 16384 so leave ~24% of map empty
     uint256 public constant MINT_PRICE = 0.08 ether;
+
+    uint32 public constant NUM_ROWS = 128;
+    uint32 public constant NUM_COLS = 128;
 
     // _superOwner will always be the contract address, in order to clear state with asteroid later.
     enum EntittyType {
@@ -47,10 +52,11 @@ contract SafariBang is ERC721, MultiOwnable {
         OXPECKER // this bird is hung like an ox
     }
 
+    // probably put this offchain?
     struct Entitty {
         EntittyType entittyType;
         Species species; // this determines the image
-        uint64 id;
+        uint256 id;
         uint32 size;
         uint32 strength; // P(successfully "fight")
         uint32 speed; // P(successfully "flee")
@@ -58,17 +64,69 @@ contract SafariBang is ERC721, MultiOwnable {
         uint32 anxiety; // P(choose "flee" | isWildAnimal())
         uint32 aggression; // P(choose "fight" | isWildAnimal())
         uint32 libido; // P(choose "fuck" | isWildAnimal())
-        bool gender; // animals are male or female, no in-between ladyboy shit like in our stupid IRL world
-        uint32[][] position; // x,y coordinates on the map
+        bool gender; // animals are male or female, no in-between ladyboy shit like in our stupid human world
+        uint32[2] position; // x,y coordinates on the map
         address owner;
     }
 
-    uint64[128][128] public safariMap; // just put the id's to save space?
-    mapping (uint64 => Entitty) internal idToEntitty; // then look it up here
+    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // just put the id's to save space?
+    mapping (uint256 => Entitty) public idToEntitty; // then look it up here
 
-    constructor(string memory _name, string memory _symbol, string memory _baseURI) ERC721(_name, _symbol) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        string memory _baseURI
+        // uint64[128][128] memory _initialMapState
+        ) ERC721(_name, _symbol) {
         baseURI = _baseURI;
-        transferSuperOwnership(msg.sender);
+        // safariMap = _initialMapState;
+    }
+
+    // "and on the 69th day, he said, let there be a bunch of horny angry animals" - god, probably
+    function mapGenesis(uint howMany) public onlySuperOwner {
+        // TODO: use VRF to populate different number each round
+        for (uint32 row = 0; row < NUM_ROWS; row++) {
+            for (uint32 col = 0; col < NUM_COLS; col++) {
+                uint256 currId = ++currentTokenId;
+
+                if (currId == howMany) {
+                    return;
+                }
+
+                // console.log("Minting => ", currId);
+
+                if (currId > TOTAL_SUPPLY) {
+                    console.log("ERROR: MAX SUPPLY");
+                    revert MaxSupply();
+                }
+
+                _safeMint(address(this), currId);
+
+                uint32[2] memory pos = [row, col];
+                
+                Entitty memory wipAnimal = Entitty({
+                    entittyType: EntittyType.DOMESTICATED_ANIMAL,
+                    species: Species.ZEBRAT, // TODO: use VRF
+                    id: currId,
+                    size: 1, // TODO: use VRF
+                    strength: 1,
+                    speed:1, // TODO: use VRF
+                    fertility: 1, // TODO: use VRF
+                    anxiety: 1, // TODO: use VRF
+                    aggression: 1, // TODO: use VRF
+                    libido: 1, // TODO: use VRF
+                    gender: true,
+                    position: pos, // TODO: use VRF
+                    owner: address(this)
+                });
+
+                idToEntitty[currId] = wipAnimal;
+                safariMap[row][col] = currId;
+            }
+        }
+
+        console.log("===> ", safariMap[0][69]);
+        console.log("IdToEntitty", idToEntitty[69].owner, idToEntitty[69].id);
     }
 
     function move() internal returns (uint32[][] memory) {
@@ -113,5 +171,14 @@ contract SafariBang is ERC721, MultiOwnable {
         if (!transferTx) {
             revert WithdrawTransfer();
         }
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4) {
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 }

@@ -28,7 +28,7 @@ abstract contract MultiOwnable is Context {
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor() {
-        _transferOwnership(_msgSender());
+        _transferSuperOwnership(_msgSender());
     }
 
     /**
@@ -59,14 +59,14 @@ abstract contract MultiOwnable is Context {
      * @dev Throws if the sender is not a super owner.
      */
     function _checkSuperOwner() internal view virtual {
-        require(owners()[0] == _msgSender(), "Ownable: caller is not a super owner");
+        require(_superOwner == _msgSender(), "MultiOwnable: caller is not a super owner");
     }
 
     /**
      * @dev Throws if the sender is not an owner.
      */
     function _checkOwner() internal view virtual {
-        require(owners()[1] == _msgSender(), "Ownable: caller is not an owner");
+        require(_owner == _msgSender(), "MultiOwnable: caller is not an owner");
     }
 
     /**
@@ -81,7 +81,7 @@ abstract contract MultiOwnable is Context {
     }
 
     function transferSuperOwnership(address newOwner) public virtual onlySuperOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        require(newOwner != address(0), "MultiOwnable: new owner is the zero address");
         _transferSuperOwnership(newOwner);
     }
 
@@ -96,7 +96,7 @@ abstract contract MultiOwnable is Context {
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        require(newOwner != address(0), "MultieOwnable: new owner is the zero address");
         _transferOwnership(newOwner);
     }
 
