@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
+// import "forge-std/console.sol";
 import "../src/SafariBang.sol";
 
 contract SafariBangTest is Test {
@@ -17,7 +18,15 @@ contract SafariBangTest is Test {
         safaribang.mapGenesis();
 
         // check currentTokenId is incremented
-        
+        uint256 slot = stdstore
+            .target(address(safaribang))
+            .sig("currentTokenId()")
+            .find();
+        bytes32 loc = bytes32(slot);
+
+        bytes32 currentTokenId = vm.load(address(safaribang), loc);
+
+        emit log_named_uint("token id after genesis mint ", uint256(currentTokenId));
 
         // check positions of animals by mapping(id => entitty)
 
