@@ -3,6 +3,8 @@ pragma solidity ^0.8.10;
 
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
+import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import "forge-std/console.sol";
 
 import "./MultiOwnable.sol";
 
@@ -11,12 +13,15 @@ error MaxSupply();
 error NonExistentTokenUri();
 error WithdrawTransfer();
 
-contract SafariBang is ERC721, MultiOwnable {
+contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     using Strings for uint256;
     string public baseURI;
     uint256 public currentTokenId = 0;
     uint256 public constant TOTAL_SUPPLY = 12_500; // map is 128 * 128 = 16384 so leave ~24% of map empty
     uint256 public constant MINT_PRICE = 0.08 ether;
+
+    uint32 public constant NUM_ROWS = 128;
+    uint32 public constant NUM_COLS = 128;
 
     // _superOwner will always be the contract address, in order to clear state with asteroid later.
     enum EntittyType {
@@ -51,7 +56,7 @@ contract SafariBang is ERC721, MultiOwnable {
     struct Entitty {
         EntittyType entittyType;
         Species species; // this determines the image
-        uint64 id;
+        uint256 id;
         uint32 size;
         uint32 strength; // P(successfully "fight")
         uint32 speed; // P(successfully "flee")
@@ -64,8 +69,8 @@ contract SafariBang is ERC721, MultiOwnable {
         address owner;
     }
 
-    uint64[128][128] public safariMap; // just put the id's to save space?
-    mapping (uint64 => Entitty) internal idToEntitty; // then look it up here
+    uint256[NUM_ROWS][NUM_COLS] public safariMap; // just put the id's to save space?
+    mapping (uint256 => Entitty) internal idToEntitty; // then look it up here
 
     constructor(
         string memory _name,
@@ -78,38 +83,59 @@ contract SafariBang is ERC721, MultiOwnable {
     }
 
     // "and on the 69th day, he said, let there be a bunch of horny angry animals" - god, probably
-    function mapGenesis() public onlySuperOwner {
-        uint32 i;
-        uint currId = ++currentTokenId;
+    function mintGenesis() public onlySuperOwner {
+        uint256 currId = currentTokenId;
+        console.log("msg.sender =>", msg.sender);
 
-        if (currId > TOTAL_SUPPLY) {
-            revert MaxSupply();
-        }
+        for (uint32 i = 0; i < 100; i++) {
+            currId += 1;
 
-        // TODO: use VRF to populate different number each round
-        for (i = 0; i < 5000; i++) {
-            _safeMint(msg.sender, currId);
+            console.log("Total Supply", TOTAL_SUPPLY);
 
-            Entitty memory wipAnimal = Entitty({
-                entittyType: EntittyType.DOMESTICATED_ANIMAL,
-                species: Species.ZEBRAT, // TODO: use VRF
-                id: i,
-                size: 1, // TODO: use VRF
-                strength: 1,
-                speed:1, // TODO: use VRF
-                fertility: 1, // TODO: use VRF
-                anxiety: 1, // TODO: use VRF
-                aggression: 1, // TODO: use VRF
-                libido: 1, // TODO: use VRF
-                gender: true,
-                position: [0, i], // TODO: use VRF
-                owner: msg.sender
-            });
+            if (currId > TOTAL_SUPPLY) {
+                console.log("ERROR: MAX SUPPLY");
+                revert MaxSupply();
+            }
 
-            idToEntitty[i] = wipAnimal;
-            safariMap[wipAnimal.position[0]][wipAnimal.position[1]] = i;
+            console.log("currId---", currId);
+
+            _safeMint(address(this), currId);
+            
+            console.log("Minted~~~");
         }
     }
+
+    
+    // function mapGenesis() public onlySuperOwner {
+    //     // TODO: use VRF to populate different number each round
+    //     for (uint32 row = 0; row < NUM_ROWS - 100; row++) {
+    //         for (uint32 col = 0; col < NUM_COLS; col++) {
+
+    //             uint32[2] memory pos = [row, col];
+                
+    //             Entitty memory wipAnimal = Entitty({
+    //                 entittyType: EntittyType.DOMESTICATED_ANIMAL,
+    //                 species: Species.ZEBRAT, // TODO: use VRF
+    //                 id: currId,
+    //                 size: 1, // TODO: use VRF
+    //                 strength: 1,
+    //                 speed:1, // TODO: use VRF
+    //                 fertility: 1, // TODO: use VRF
+    //                 anxiety: 1, // TODO: use VRF
+    //                 aggression: 1, // TODO: use VRF
+    //                 libido: 1, // TODO: use VRF
+    //                 gender: true,
+    //                 position: pos, // TODO: use VRF
+    //                 owner: msg.sender
+    //             });
+
+    //             console.logUint(wipAnimal.libido);
+
+    //             idToEntitty[currId] = wipAnimal;
+    //             safariMap[row][col] = currId;
+    //         }
+    //     }
+    // }
 
     function move() internal returns (uint32[][] memory) {
 
@@ -153,5 +179,14 @@ contract SafariBang is ERC721, MultiOwnable {
         if (!transferTx) {
             revert WithdrawTransfer();
         }
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4) {
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     }
 }

@@ -13,9 +13,18 @@ contract SafariBangTest is Test {
         safaribang = new SafariBang("SafariBang", "SAFABA", "https://ipfs.io/ipfs/");
     }
 
-    // function testMapGenesis() public {
+    function testMintGenesis() public {
+        safaribang.mintGenesis();
 
-    // }
+        // check currentTokenId is incremented
+        
+
+        // check positions of animals by mapping(id => entitty)
+
+        // check if square is populated by safariMap[][]
+
+        // check owner is msg.sender
+    }
 
     function testFailNoMintPricePaid() public {
         safaribang.mintTo(address(1));
