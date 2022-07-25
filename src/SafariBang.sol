@@ -52,6 +52,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         OXPECKER // this bird is hung like an ox
     }
 
+    enum Direction {
+        Up,
+        Down,
+        Left,
+        Right
+    }
+
     // probably put this offchain?
     struct Entitty {
         EntittyType entittyType;
@@ -82,7 +89,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         // safariMap = _initialMapState;
     }
 
-    // "and on the 69th day, he said, let there be a bunch of horny angry animals" - god, probably
+    /**
+        "And on the 69th day, he said, let there be a bunch of horny angry animals" - God, probably
+        @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
+        @param howMany How many animals are you going to populate this map with, ser?
+     */
     function mapGenesis(uint howMany) public onlySuperOwner {
         // TODO: use VRF to populate different number each round
         for (uint32 row = 0; row < NUM_ROWS; row++) {
@@ -129,18 +140,52 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         console.log("IdToEntitty", idToEntitty[69].owner, idToEntitty[69].id);
     }
 
-    function move() internal returns (uint32[][] memory) {
+    /** 
+    @dev A player must make a move on their turn. You can only move one square at a time.
 
+    Possible cases:
+        a) Empty square: just update position and that's it.
+        b) Wild Animal: You need to fight, flee, or fuck. Consequences depend on the action.
+        c) Domesicated Animal: You need to fight or fuck (cannot flee). Same consequences as above.
+    @param direction up, down, left, or right.
+    */
+    function move(Direction direction) internal returns (uint32[2] newPosition) {
+        return [0, 69];
     }
 
+    /**
+        @dev Fight the animal on the same square as you're trying to move to.
+        
+
+        If succeed, take the square and the animal goes into your quiver. 
+        If fail, you lose the animal and you're forced to use the next animal in your quiver, or mint a new one if you don't have one, or wait till the next round if there are no more animals to mint.
+     */
     function fight() public payable returns (bool) {}
+
+    /**
+        @dev Fuck an animal and maybe you can conceive (mint) a baby animal to your quiver.
+     */
     function fuck() public payable returns (bool) {}
+
+    /**
+        @dev Flee an animal and maybe end up in the next square but if the square you land on has an animal on it again, then you have to fight or fuck it.
+     */
     function flee() public payable returns (bool) {}
 
+    /**
+        @dev An Asteroid hits the map every interval of X blocks and we'll reset the game state:
+            a) All Wild Animals are burned and taken off the map.
+            b) All Domesticated Animals are burned and taken off the map.
+            c) mapGenesis() again, but minus the delta of how many domesticated animals survived (were minted but in the quiver, not on the map).
+     */
     function omfgAnAsteroidOhNo() public returns (bool) {
         
     }
 
+    /**
+        @dev Mint a character for a paying customer
+        @param to address of who to mint the character to
+     */
     function mintTo(address to) public payable returns (uint256) {
         if (msg.value < MINT_PRICE) {
             revert MintPriceNotPaid();
