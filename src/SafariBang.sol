@@ -69,8 +69,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         address owner;
     }
 
-    uint256[NUM_ROWS][NUM_COLS] public safariMap; // just put the id's to save space?
-    mapping (uint256 => Entitty) internal idToEntitty; // then look it up here
+    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // just put the id's to save space?
+    mapping (uint256 => Entitty) public idToEntitty; // then look it up here
 
     constructor(
         string memory _name,
@@ -83,13 +83,17 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     }
 
     // "and on the 69th day, he said, let there be a bunch of horny angry animals" - god, probably
-    function mapGenesis() public onlySuperOwner {
+    function mapGenesis(uint howMany) public onlySuperOwner {
         // TODO: use VRF to populate different number each round
-        for (uint32 row = 0; row < NUM_ROWS - 100; row++) {
+        for (uint32 row = 0; row < NUM_ROWS; row++) {
             for (uint32 col = 0; col < NUM_COLS; col++) {
                 uint256 currId = ++currentTokenId;
 
-                console.log("Minting => ", currId);
+                if (currId == howMany) {
+                    return;
+                }
+
+                // console.log("Minting => ", currId);
 
                 if (currId > TOTAL_SUPPLY) {
                     console.log("ERROR: MAX SUPPLY");
@@ -113,13 +117,16 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
                     libido: 1, // TODO: use VRF
                     gender: true,
                     position: pos, // TODO: use VRF
-                    owner: msg.sender
+                    owner: address(this)
                 });
 
                 idToEntitty[currId] = wipAnimal;
                 safariMap[row][col] = currId;
             }
         }
+
+        console.log("===> ", safariMap[0][69]);
+        console.log("IdToEntitty", idToEntitty[69].owner, idToEntitty[69].id);
     }
 
     function move() internal returns (uint32[][] memory) {

@@ -2,11 +2,12 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-// import "forge-std/console.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "../src/SafariBang.sol";
 
 contract SafariBangTest is Test {
     using stdStorage for StdStorage;
+    using Strings for address;
 
     SafariBang private safaribang;
 
@@ -15,9 +16,9 @@ contract SafariBangTest is Test {
     }
 
     function testMapGenesis() public {
-        safaribang.mapGenesis();
+        safaribang.mapGenesis(79);
 
-        // check currentTokenId is incremented
+        // CASE 1: check currentTokenId is incremented
         uint256 slot = stdstore
             .target(address(safaribang))
             .sig("currentTokenId()")
@@ -26,13 +27,35 @@ contract SafariBangTest is Test {
 
         bytes32 currentTokenId = vm.load(address(safaribang), loc);
 
-        emit log_named_uint("token id after genesis mint ", uint256(currentTokenId));
+        emit log_named_uint("next token id after genesis mint ", uint256(currentTokenId));
 
-        // check positions of animals by mapping(id => entitty)
+        assertEq(uint256(currentTokenId), 79);
 
-        // check if square is populated by safariMap[][]
+        // CASE 2: check if square is populated by safariMap[][]
+        uint256 idOfMyBoyAtRow0Col69 = safaribang.safariMap(0, 68);
+        assertEq(idOfMyBoyAtRow0Col69, 69);
+        emit log_named_uint("token id of row 0 col 68 ", uint256(idOfMyBoyAtRow0Col69));
 
-        // check owner is msg.sender
+        // CASE 3: check positions of animals by mapping(id => entitty)
+        (SafariBang.EntittyType entittyType, 
+            SafariBang.Species species,
+            uint256 id, 
+            uint32 size,
+            uint32 strength,
+            uint32 speed,
+            uint32 fertility,
+            uint32 anxiety,
+            uint32 aggression,
+            uint32 libido,
+            bool gender,
+            // uint32[2] memory position,
+            address owner) = safaribang.idToEntitty(idOfMyBoyAtRow0Col69);
+        
+        assertEq(id, 69);
+        assertEq(size, 1);
+        assertEq(gender, true);
+        assertEq(owner, address(safaribang));
+        console.log("owner of 69", owner);
     }
 
     function testFailNoMintPricePaid() public {
