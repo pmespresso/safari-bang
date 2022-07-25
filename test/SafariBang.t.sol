@@ -13,8 +13,8 @@ contract SafariBangTest is Test {
         safaribang = new SafariBang("SafariBang", "SAFABA", "https://ipfs.io/ipfs/");
     }
 
-    function testMintGenesis() public {
-        safaribang.mintGenesis();
+    function testMapGenesis() public {
+        safaribang.mapGenesis();
 
         // check currentTokenId is incremented
         

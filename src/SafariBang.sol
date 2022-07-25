@@ -83,59 +83,44 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     }
 
     // "and on the 69th day, he said, let there be a bunch of horny angry animals" - god, probably
-    function mintGenesis() public onlySuperOwner {
-        uint256 currId = currentTokenId;
-        console.log("msg.sender =>", msg.sender);
+    function mapGenesis() public onlySuperOwner {
+        // TODO: use VRF to populate different number each round
+        for (uint32 row = 0; row < NUM_ROWS - 100; row++) {
+            for (uint32 col = 0; col < NUM_COLS; col++) {
+                uint256 currId = ++currentTokenId;
 
-        for (uint32 i = 0; i < 100; i++) {
-            currId += 1;
+                console.log("Minting => ", currId);
 
-            console.log("Total Supply", TOTAL_SUPPLY);
+                if (currId > TOTAL_SUPPLY) {
+                    console.log("ERROR: MAX SUPPLY");
+                    revert MaxSupply();
+                }
 
-            if (currId > TOTAL_SUPPLY) {
-                console.log("ERROR: MAX SUPPLY");
-                revert MaxSupply();
+                _safeMint(address(this), currId);
+
+                uint32[2] memory pos = [row, col];
+                
+                Entitty memory wipAnimal = Entitty({
+                    entittyType: EntittyType.DOMESTICATED_ANIMAL,
+                    species: Species.ZEBRAT, // TODO: use VRF
+                    id: currId,
+                    size: 1, // TODO: use VRF
+                    strength: 1,
+                    speed:1, // TODO: use VRF
+                    fertility: 1, // TODO: use VRF
+                    anxiety: 1, // TODO: use VRF
+                    aggression: 1, // TODO: use VRF
+                    libido: 1, // TODO: use VRF
+                    gender: true,
+                    position: pos, // TODO: use VRF
+                    owner: msg.sender
+                });
+
+                idToEntitty[currId] = wipAnimal;
+                safariMap[row][col] = currId;
             }
-
-            console.log("currId---", currId);
-
-            _safeMint(address(this), currId);
-            
-            console.log("Minted~~~");
         }
     }
-
-    
-    // function mapGenesis() public onlySuperOwner {
-    //     // TODO: use VRF to populate different number each round
-    //     for (uint32 row = 0; row < NUM_ROWS - 100; row++) {
-    //         for (uint32 col = 0; col < NUM_COLS; col++) {
-
-    //             uint32[2] memory pos = [row, col];
-                
-    //             Entitty memory wipAnimal = Entitty({
-    //                 entittyType: EntittyType.DOMESTICATED_ANIMAL,
-    //                 species: Species.ZEBRAT, // TODO: use VRF
-    //                 id: currId,
-    //                 size: 1, // TODO: use VRF
-    //                 strength: 1,
-    //                 speed:1, // TODO: use VRF
-    //                 fertility: 1, // TODO: use VRF
-    //                 anxiety: 1, // TODO: use VRF
-    //                 aggression: 1, // TODO: use VRF
-    //                 libido: 1, // TODO: use VRF
-    //                 gender: true,
-    //                 position: pos, // TODO: use VRF
-    //                 owner: msg.sender
-    //             });
-
-    //             console.logUint(wipAnimal.libido);
-
-    //             idToEntitty[currId] = wipAnimal;
-    //             safariMap[row][col] = currId;
-    //         }
-    //     }
-    // }
 
     function move() internal returns (uint32[][] memory) {
 
