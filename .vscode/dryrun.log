@@ -1,0 +1,9 @@
+make: Entering directory `/Users/yj/Developer/hello_foundry'
+forge clean
+rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gitmodules && git add . && git commit -m "modules"
+forge install smartcontractkit/chainlink-brownie-contracts && forge install rari-capital/solmate && forge install foundry-rs/forge-std
+ 
+forge update
+forge build
+make: Leaving directory `/Users/yj/Developer/hello_foundry'
+ 
