@@ -1,1 +1,0 @@
-{"buildTargets":["all","anvil","build","clean","deploy-all","deploy-anvil","deploy-rinkeby","format","install","lint","remove","slither","snapshot","test","update"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}
