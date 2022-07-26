@@ -18,10 +18,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     string public baseURI;
     uint256 public currentTokenId = 0;
     uint256 public constant TOTAL_SUPPLY = 12_500; // map is 128 * 128 = 16384 so leave ~24% of map empty
+
+    // TODO: is this even necessary?
     uint256 public constant MINT_PRICE = 0.08 ether;
 
-    uint32 public constant NUM_ROWS = 128;
-    uint32 public constant NUM_COLS = 128;
+    uint8 public constant NUM_ROWS = 128;
+    uint8 public constant NUM_COLS = 128;
 
     // _superOwner will always be the contract address, in order to clear state with asteroid later.
     enum EntittyType {
@@ -72,12 +74,15 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         uint32 aggression; // P(choose "fight" | isWildAnimal())
         uint32 libido; // P(choose "fuck" | isWildAnimal())
         bool gender; // animals are male or female, no in-between ladyboy shit like in our stupid human world
-        uint32[2] position; // x,y coordinates on the map
+        uint8[2] position; // x,y coordinates on the map
         address owner;
     }
 
+    // Row => Col => Id or 0
     mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // just put the id's to save space?
     mapping (uint256 => Entitty) public idToEntitty; // then look it up here
+
+    mapping (address => Entitty[]) internal quiver; // line up of an address's owned animals
 
     constructor(
         string memory _name,
@@ -96,8 +101,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
         // TODO: use VRF to populate different number each round
-        for (uint32 row = 0; row < NUM_ROWS; row++) {
-            for (uint32 col = 0; col < NUM_COLS; col++) {
+        for (uint8 row = 0; row < NUM_ROWS; row++) {
+            for (uint8 col = 0; col < NUM_COLS; col++) {
                 uint256 currId = ++currentTokenId;
 
                 if (currId == howMany) {
@@ -112,32 +117,41 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
                 }
 
                 _safeMint(address(this), currId);
-
-                uint32[2] memory pos = [row, col];
                 
-                Entitty memory wipAnimal = Entitty({
-                    entittyType: EntittyType.DOMESTICATED_ANIMAL,
-                    species: Species.ZEBRAT, // TODO: use VRF
-                    id: currId,
-                    size: 1, // TODO: use VRF
-                    strength: 1,
-                    speed:1, // TODO: use VRF
-                    fertility: 1, // TODO: use VRF
-                    anxiety: 1, // TODO: use VRF
-                    aggression: 1, // TODO: use VRF
-                    libido: 1, // TODO: use VRF
-                    gender: true,
-                    position: pos, // TODO: use VRF
-                    owner: address(this)
-                });
-
-                idToEntitty[currId] = wipAnimal;
-                safariMap[row][col] = currId;
+                createEntitty(
+                    address(this), 
+                    currId, 
+                    row, 
+                    col,
+                    EntittyType.WILD_ANIMAL
+                    );
             }
         }
+    }
 
-        console.log("===> ", safariMap[0][69]);
-        console.log("IdToEntitty", idToEntitty[69].owner, idToEntitty[69].id);
+    function createEntitty(address to, uint256 id, uint8 row, uint8 col, EntittyType entittyType) internal returns (Entitty memory) {
+        Entitty memory wipAnimal = Entitty({
+            entittyType: entittyType,
+            species: Species.ZEBRAT, // TODO: use VRF
+            id: id,
+            size: 1, // TODO: use VRF
+            strength: 1,
+            speed:1, // TODO: use VRF
+            fertility: 1, // TODO: use VRF
+            anxiety: 1, // TODO: use VRF
+            aggression: 1, // TODO: use VRF
+            libido: 1, // TODO: use VRF
+            gender: true,
+            position: [row, col], // TODO: use VRF
+            owner: address(this)
+        });
+
+        // TODO: assign attributes by VRF
+        quiver[to].push(wipAnimal);
+        safariMap[row][col] = id;
+        idToEntitty[id] = wipAnimal;
+
+        return wipAnimal;
     }
 
     /** 
@@ -149,7 +163,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         c) Domesicated Animal: You need to fight or fuck (cannot flee). Same consequences as above.
     @param direction up, down, left, or right.
     */
-    function move(Direction direction) internal returns (uint32[2] newPosition) {
+    function move(Direction direction) internal returns (uint8[2] memory newPosition) {
         return [0, 69];
     }
 
@@ -199,7 +213,17 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
 
         _safeMint(to, currId);
 
+        console.log("MINT TO => ", to);
+
+        // TODO: use VRF to randomly try to find an empty square
+        createEntitty(to, currId, 69, 69, EntittyType.DOMESTICATED_ANIMAL);
+
         return currId;
+    }
+
+    function getQuiver() public view returns (Entitty[] memory myQuiver){
+        console.log("msg.sender => ", msg.sender);
+        return quiver[msg.sender];
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
