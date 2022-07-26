@@ -4,6 +4,7 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/utils/Context.sol";
+import "forge-std/console.sol";
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -44,6 +45,11 @@ abstract contract MultiOwnable is Context {
      */
     modifier onlySuperOwner() {
         _checkSuperOwner();
+        _;
+    }
+
+    modifier onlyOneOfTheOwners() {
+        require(_superOwner == _msgSender() || _owner == _msgSender(), "MultiOwnable: caller must be either owner or superOwner.");
         _;
     }
 
