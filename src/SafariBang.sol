@@ -149,7 +149,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         c) Domesicated Animal: You need to fight or fuck (cannot flee). Same consequences as above.
     @param direction up, down, left, or right.
     */
-    function move(Direction direction) internal returns (uint32[2] newPosition) {
+    function move(Direction direction) internal returns (uint8[2] memory newPosition) {
         return [0, 69];
     }
 
