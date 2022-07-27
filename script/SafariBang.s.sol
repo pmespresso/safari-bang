@@ -8,10 +8,10 @@ contract SafariBangScript is Script {
     // function setUp() public {}
 
     function run() public {
-        vm.startBroadcast();
+        // vm.startBroadcast();
 
-        SafariBang safaribang = new SafariBang("Safari Bang", "SAFABA", "https://ipfs.io/ipfs/");
+        // SafariBang safaribang = new SafariBang("Safari Bang", "SAFABA", "https://ipfs.io/ipfs/");
 
-        vm.stopBroadcast();
+        // vm.stopBroadcast();
     }
 }

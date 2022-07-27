@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
+import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "solmate/tokens/ERC20.sol";
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
 
+import "./VRFConsumerV2.sol";
 import "./MultiOwnable.sol";
 
 error MintPriceNotPaid();
@@ -13,7 +16,7 @@ error MaxSupply();
 error NonExistentTokenUri();
 error WithdrawTransfer();
 
-contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
+contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, VRFConsumerV2 {
     using Strings for uint256;
     string public baseURI;
     uint256 public currentTokenId = 0;
@@ -83,15 +86,23 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     mapping (uint256 => Entitty) public idToEntitty; // then look it up here
 
     mapping (address => Entitty[]) internal quiver; // line up of an address's owned animals
-
+    
+    /**
+        Chainlink VRF - This if for Mumbai.
+        TODO: Change to Polygon Mainnet
+        https://docs.chain.link/docs/vrf-contracts/#polygon-matic-mumbai-testnet
+     */
+    
+    bytes32 keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
     constructor(
         string memory _name,
         string memory _symbol,
-        string memory _baseURI
-        // uint64[128][128] memory _initialMapState
-        ) ERC721(_name, _symbol) {
+        string memory _baseURI,
+        uint64 s_subscriptionId,
+        address vrfCoordinator,
+        address link_token_contract
+        ) ERC721(_name, _symbol) VRFConsumerV2(s_subscriptionId, vrfCoordinator, link_token_contract, keyHash) {
         baseURI = _baseURI;
-        // safariMap = _initialMapState;
     }
 
     /**

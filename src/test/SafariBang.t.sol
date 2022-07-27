@@ -3,7 +3,10 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
-import "../src/SafariBang.sol";
+
+import "../SafariBang.sol";
+import "./mocks/LinkToken.sol";
+import "./mocks/MockVRFCoordinatorV2.sol";
 
 contract SafariBangTest is Test {
     using stdStorage for StdStorage;
@@ -13,11 +16,27 @@ contract SafariBangTest is Test {
 
     address Alice = address(1);
 
-    function setUp() public {
-        safariBang = new SafariBang("SafariBang", "SAFABA", "https://ipfs.io/ipfs/");
+    uint64 subId;
+    uint96 constant FUND_AMOUNT = 1 * 10**18;
 
-        // CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
-        // Alice = cheats.addr(1);
+    LinkToken linkToken;
+    MockVRFCoordinatorV2 vrfCoordinator;
+
+    function setUp() public {
+        linkToken = new LinkToken();
+        vrfCoordinator = new MockVRFCoordinatorV2();
+        subId = vrfCoordinator.createSubscription();
+        vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
+
+        safariBang = new SafariBang(
+            "SafariBang",
+            "SAFABA",
+            "https://ipfs.io/ipfs/",
+            subId,
+            address(vrfCoordinator),
+            address(linkToken)
+        );
+
         vm.deal(Alice, 100 ether);
     }
 
