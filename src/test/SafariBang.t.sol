@@ -34,10 +34,31 @@ contract SafariBangTest is Test {
             "https://ipfs.io/ipfs/",
             subId,
             address(vrfCoordinator),
-            address(linkToken)
+            address(linkToken),
+            vrfCoordinator
         );
 
         vm.deal(Alice, 100 ether);
+    }
+
+    function testCreateEntitty() public {
+        uint new_guy_id = safariBang.createEntitty(Alice, 69, 69, 69, SafariBang.EntittyType.DOMESTICATED_ANIMAL);
+
+        (SafariBang.EntittyType entittyType, 
+            SafariBang.Species species,
+            uint256 id, 
+            uint32 size,
+            uint32 strength,
+            uint32 speed,
+            uint32 fertility,
+            uint32 anxiety,
+            uint32 aggression,
+            uint32 libido,
+            bool gender,
+            // uint32[2] memory position,
+            address owner) = safariBang.idToEntitty(new_guy_id);
+
+        console.log("size: ", size);
     }
 
     function testMapGenesis() public {
@@ -77,7 +98,7 @@ contract SafariBangTest is Test {
             address owner) = safariBang.idToEntitty(idOfMyBoyAtRow0Col69);
         
         assertEq(id, 69);
-        assertEq(size, 1);
+        // assertGt(size, 1);
         assertEq(gender, true);
         assertEq(owner, address(safariBang));
         console.log("owner of 69", owner);

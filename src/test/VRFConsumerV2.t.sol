@@ -6,6 +6,7 @@ import "./mocks/MockVRFCoordinatorV2.sol";
 import "./mocks/LinkToken.sol";
 import "./utils/Cheats.sol";
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 
 contract VRFConsumerV2Test is Test {
     LinkToken public linkToken;
@@ -42,6 +43,7 @@ contract VRFConsumerV2Test is Test {
 
     function testCanGetRandomResponse() public {
         vrfConsumer.requestRandomWords();
+
         uint256 requestId = vrfConsumer.s_requestId();
 
         uint256[] memory words = getWords(requestId);

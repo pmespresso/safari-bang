@@ -8,6 +8,7 @@ import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
 
+import "./test/mocks/MockVRFCoordinatorV2.sol";
 import "./VRFConsumerV2.sol";
 import "./MultiOwnable.sol";
 
@@ -16,7 +17,7 @@ error MaxSupply();
 error NonExistentTokenUri();
 error WithdrawTransfer();
 
-contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, VRFConsumerV2 {
+contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     using Strings for uint256;
     string public baseURI;
     uint256 public currentTokenId = 0;
@@ -94,15 +95,26 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, VRFConsumerV2 {
      */
     
     bytes32 keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
+    uint64 subId;
+    VRFConsumerV2 public vrfConsumer;
+    MockVRFCoordinatorV2 public vrfCoordinator;
+
+    uint96 constant FUND_AMOUNT = 1 * 10**18;
+
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _baseURI,
         uint64 s_subscriptionId,
-        address vrfCoordinator,
-        address link_token_contract
-        ) ERC721(_name, _symbol) VRFConsumerV2(s_subscriptionId, vrfCoordinator, link_token_contract, keyHash) {
+        address s_vrfCoordinator_address,
+        address link_token_contract,
+        MockVRFCoordinatorV2 s_vrfCoordinator
+        ) ERC721(_name, _symbol) {
         baseURI = _baseURI;
+
+        // TODO: change to real for deployment
+        vrfCoordinator = s_vrfCoordinator;
+        vrfConsumer = new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
     }
 
     /**
@@ -140,18 +152,30 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, VRFConsumerV2 {
         }
     }
 
-    function createEntitty(address to, uint256 id, uint8 row, uint8 col, EntittyType entittyType) internal returns (Entitty memory) {
+    function createEntitty(address to, uint256 id, uint8 row, uint8 col, EntittyType entittyType) public returns (uint newGuyId) {
+        vrfConsumer.requestRandomWords();
+
+        uint256 requestId = vrfConsumer.s_requestId();
+
+        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+
+        uint256[] memory words = getWords(requestId);
+
+        console.log("word 0 % 50: ", words[0] % 50);
+        console.log("word 0 % 49: ", words[0] % 49);
+        console.log("word 0 % 47: ", words[0] % 48);
+
         Entitty memory wipAnimal = Entitty({
             entittyType: entittyType,
             species: Species.ZEBRAT, // TODO: use VRF
             id: id,
-            size: 1, // TODO: use VRF
-            strength: 1,
-            speed:1, // TODO: use VRF
-            fertility: 1, // TODO: use VRF
-            anxiety: 1, // TODO: use VRF
-            aggression: 1, // TODO: use VRF
-            libido: 1, // TODO: use VRF
+            size: words[0] % 50,
+            strength: words[0] % 49,
+            speed: words[0] % 48,
+            fertility: words[0] % 47,
+            anxiety: words[0] % 46,
+            aggression: words[0] % 45,
+            libido: words[0] % 44, 
             gender: true,
             position: [row, col], // TODO: use VRF
             owner: address(this)
@@ -162,7 +186,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, VRFConsumerV2 {
         safariMap[row][col] = id;
         idToEntitty[id] = wipAnimal;
 
-        return wipAnimal;
+        return wipAnimal.id;
     }
 
     /** 
@@ -251,6 +275,18 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, VRFConsumerV2 {
         if (!transferTx) {
             revert WithdrawTransfer();
         }
+    }
+
+     function getWords(uint256 requestId)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256[] memory words = new uint256[](vrfConsumer.s_numWords());
+        for (uint256 i = 0; i < vrfConsumer.s_numWords(); i++) {
+            words[i] = uint256(keccak256(abi.encode(requestId, i)));
+        }
+        return words;
     }
 
     function onERC721Received(
