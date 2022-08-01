@@ -47,18 +47,26 @@ contract SafariBangTest is Test {
         (SafariBang.EntittyType entittyType, 
             SafariBang.Species species,
             uint256 id, 
-            uint32 size,
-            uint32 strength,
-            uint32 speed,
-            uint32 fertility,
-            uint32 anxiety,
-            uint32 aggression,
-            uint32 libido,
+            uint256 size,
+            uint256 strength,
+            uint256 speed,
+            uint256 fertility,
+            uint256 anxiety,
+            uint256 aggression,
+            uint256 libido,
             bool gender,
-            // uint32[2] memory position,
+            SafariBang.Position memory position,
             address owner) = safariBang.idToEntitty(new_guy_id);
 
         console.log("size: ", size);
+        console.log("strength: ", strength);
+        console.log("speed: ", speed);
+        console.log("fertility: ", fertility);
+        console.log("anxiety: ", anxiety);
+        console.log("aggression: ", aggression);
+        console.log("libido: ", libido);
+        console.log("gender: ", gender);
+        assert(position.row >= 0 && position.row <= 128);
     }
 
     function testMapGenesis() public {
@@ -86,15 +94,15 @@ contract SafariBangTest is Test {
         (SafariBang.EntittyType entittyType, 
             SafariBang.Species species,
             uint256 id, 
-            uint32 size,
-            uint32 strength,
-            uint32 speed,
-            uint32 fertility,
-            uint32 anxiety,
-            uint32 aggression,
-            uint32 libido,
+            uint256 size,
+            uint256 strength,
+            uint256 speed,
+            uint256 fertility,
+            uint256 anxiety,
+            uint256 aggression,
+            uint256 libido,
             bool gender,
-            // uint32[2] memory position,
+            SafariBang.Position memory position,
             address owner) = safariBang.idToEntitty(idOfMyBoyAtRow0Col69);
         
         assertEq(id, 69);
