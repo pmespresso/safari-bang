@@ -35,7 +35,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         WILD_ANIMAL // _owner is SafariBang contract address
     }
 
-    enum Species {
+    enum Specie {
         ZEBRAT, // Zebra with a bratty attitude
         LIONNESSY, // Lionness thinks she's a princess
         DOGGIE, // self explanatory canine slut
@@ -81,7 +81,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     // probably put this offchain?
     struct Entitty {
         EntittyType entittyType;
-        Species species; // this determines the image
+        Specie species; // this determines the image
         uint256 id;
         uint256 size;
         uint256 strength; // P(successfully "fight")
@@ -102,7 +102,30 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     mapping(uint256 => Position) public positionById;
     mapping (uint256 => Entitty) public idToEntitty; // then look it up here
     mapping (address => Entitty[]) internal quiver; // line up of an address's owned animals
-    
+
+    Specie[20] public species = [
+        Specie.ZEBRAT, // Zebra with a bratty attitude
+        Specie.LIONNESSY, // Lionness thinks she's a princess
+        Specie.DOGGIE, // self explanatory canine slut
+        Specie.PUSSYCAT, // self explanatory slut but feline
+        Specie.THICCHIPPO, // fat chick
+        Specie.GAZELLA, // jumpy anxious female character
+        Specie.MOUSEY, // Spouse material
+        Specie.WOLVERINERASS, // wolf her in her ass i dunno man
+        Specie.ELEPHAT, // phat ass
+        Specie.RHINOCERHOE, // always horny
+        Specie.CHEETHA, // this cat ain't loyal
+        Specie.BUFFALO, // hench stud
+        Specie.MONKGOOSE, // zero libido just meditates
+        Specie.WARTHOG, // genital warts
+        Specie.BABOOB, // double D cup baboon
+        Specie.WILDEBEEST, // the other stud
+        Specie.IMPALA, // the inuendos just write themselves at this point
+        Specie.COCKODILE, // i may need professional help
+        Specie.HORNBILL, // who names these animals
+        Specie.OXPECKER // this bird is hung like an ox]
+    ];
+
     /**
         Chainlink VRF - This if for Mumbai.
         TODO: Change to Polygon Mainnet
@@ -135,39 +158,32 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
     /**
         "And on the 69th day, he said, let there be a bunch of horny angry animals" - God, probably
         @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
-        @param howMany How many animals are you going to populate this map with, ser?
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
         // TODO: use VRF to populate different number each round
         for (uint8 row = 0; row < NUM_ROWS; row++) {
             for (uint8 col = 0; col < NUM_COLS; col++) {
-                uint256 currId = ++currentTokenId;
-
-                if (currId == howMany) {
+                if (currentTokenId == howMany) {
                     return;
                 }
-
-                // console.log("Minting => ", currId);
-
-                if (currId > TOTAL_SUPPLY) {
-                    console.log("ERROR: MAX SUPPLY");
-                    revert MaxSupply();
-                }
-
-                _safeMint(address(this), currId);
-                
-                createEntitty(
-                    address(this), 
-                    currId, 
-                    row, 
-                    col,
-                    EntittyType.WILD_ANIMAL
-                    );
+                createEntitty(address(this));        
             }
         }
     }
 
-    function createEntitty(address to, uint256 id, uint8 row, uint8 col, EntittyType entittyType) public returns (uint newGuyId) {
+    function createEntitty(address to) public returns (uint newGuyId) {
+        uint256 currId = ++currentTokenId;
+
+        // console.log("Minting => ", currId);
+
+        if (currId > TOTAL_SUPPLY) {
+            console.log("ERROR: MAX SUPPLY");
+            revert MaxSupply();
+        }
+
+        _safeMint(address(this), currId);
+        
+        // VRF
         vrfConsumer.requestRandomWords();
 
         uint256 requestId = vrfConsumer.s_requestId();
@@ -176,10 +192,16 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
 
         uint256[] memory words = getWords(requestId);
 
+        uint256 speciesIndex = words[0] % species.length;
+
+        uint8 row = uint8(words[0] % 128);
+        uint8 col = uint8(words[1] % 128);
+
         Entitty memory wipAnimal = Entitty({
-            entittyType: entittyType,
-            species: Species.ZEBRAT, // TODO: use VRF
-            id: id,
+            entittyType: to == address(this) ? EntittyType
+            .WILD_ANIMAL : EntittyType.DOMESTICATED_ANIMAL,
+            species: species[speciesIndex], // TODO: use VRF
+            id: currId,
             size: words[0] % 50,
             strength: words[0] % 49,
             speed: words[0] % 48,
@@ -189,16 +211,16 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
             libido: words[0] % 44, 
             gender: words[0] % 2 == 0 ? true : false,
             position: Position({
-                row: uint8(words[0] % 128),
-                col: uint8(words[1] % 128),
+                row: row,
+                col: col,
                 pendingAction: Action.None
             }),
             owner: address(this)
         });
 
         quiver[to].push(wipAnimal);
-        safariMap[row][col] = id;
-        idToEntitty[id] = wipAnimal;
+        safariMap[row][col] = currId;
+        idToEntitty[currId] = wipAnimal;
 
         return wipAnimal.id;
     }
@@ -265,7 +287,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         console.log("MINT TO => ", to);
 
         // TODO: use VRF to randomly try to find an empty square
-        createEntitty(to, currId, 69, 69, EntittyType.DOMESTICATED_ANIMAL);
+        createEntitty(to);
 
         return currId;
     }

@@ -42,10 +42,10 @@ contract SafariBangTest is Test {
     }
 
     function testCreateEntitty() public {
-        uint new_guy_id = safariBang.createEntitty(Alice, 69, 69, 69, SafariBang.EntittyType.DOMESTICATED_ANIMAL);
+        uint new_guy_id = safariBang.createEntitty(Alice);
 
         (SafariBang.EntittyType entittyType, 
-            SafariBang.Species species,
+            SafariBang.Specie species,
             uint256 id, 
             uint256 size,
             uint256 strength,
@@ -66,7 +66,10 @@ contract SafariBangTest is Test {
         console.log("aggression: ", aggression);
         console.log("libido: ", libido);
         console.log("gender: ", gender);
+        console.log("position.row", position.row);
+        console.log("position.col", position.col);
         assert(position.row >= 0 && position.row <= 128);
+        assert(position.col >= 0 && position.col <= 128);
     }
 
     function testMapGenesis() public {
@@ -92,7 +95,7 @@ contract SafariBangTest is Test {
 
         // CASE 3: check positions of animals by mapping(id => entitty)
         (SafariBang.EntittyType entittyType, 
-            SafariBang.Species species,
+            SafariBang.Specie species,
             uint256 id, 
             uint256 size,
             uint256 strength,
