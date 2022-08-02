@@ -86,14 +86,9 @@ contract SafariBangTest is Test {
 
         emit log_named_uint("next token id after genesis mint ", uint256(currentTokenId));
 
-        assertEq(uint256(currentTokenId), 79);
+        assertEq(uint256(currentTokenId), 80);
 
-        // CASE 2: check if square is populated by safariMap[][]
-        uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(0, 68);
-        assertEq(idOfMyBoyAtRow0Col69, 69);
-        emit log_named_uint("token id of row 0 col 68 ", uint256(idOfMyBoyAtRow0Col69));
-
-        // CASE 3: check positions of animals by mapping(id => entitty)
+        // CASE 2: check positions of animals by mapping(id => entitty)
         (SafariBang.EntittyType entittyType, 
             SafariBang.Specie species,
             uint256 id, 
@@ -106,13 +101,16 @@ contract SafariBangTest is Test {
             uint256 libido,
             bool gender,
             SafariBang.Position memory position,
-            address owner) = safariBang.idToEntitty(idOfMyBoyAtRow0Col69);
+            address owner) = safariBang.idToEntitty(69);
         
         assertEq(id, 69);
-        // assertGt(size, 1);
-        assertEq(gender, true);
         assertEq(owner, address(safariBang));
-        console.log("owner of 69", owner);
+        console.log("row of id 69 ", position.row);
+        console.log("col of id 69 ", position.col);
+
+        // CASE 3: check if square is populated by safariMap[][]
+        uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(position.row, position.col);
+        assertEq(idOfMyBoyAtRow0Col69, 69);
     }
 
     function testQuiver() public {
