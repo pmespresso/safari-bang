@@ -139,6 +139,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
 
     uint96 constant FUND_AMOUNT = 1 * 10**18;
 
+    uint256[] internal words;
+
     constructor(
         string memory _name,
         string memory _symbol,
@@ -153,6 +155,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         // TODO: change to real for deployment
         vrfCoordinator = s_vrfCoordinator;
         vrfConsumer = new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
+
+        vrfConsumer.requestRandomWords();
+        uint256 requestId = vrfConsumer.s_requestId();
+        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+
+        words = getWords(requestId);
     }
 
     /**
@@ -160,14 +168,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
-        // TODO: use VRF to populate different number each round
-        for (uint8 row = 0; row < NUM_ROWS; row++) {
-            for (uint8 col = 0; col < NUM_COLS; col++) {
-                if (currentTokenId == howMany) {
-                    return;
-                }
-                createEntitty(address(this));        
-            }
+        for (uint i = 0; i <= howMany; i++) {
+            createEntitty(address(this));
         }
     }
 
@@ -182,25 +184,34 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
         }
 
         _safeMint(address(this), currId);
-        
-        // VRF
-        vrfConsumer.requestRandomWords();
 
-        uint256 requestId = vrfConsumer.s_requestId();
+        // if something already there, try permutation of word until out of permutations or find empty square.
 
-        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+        bool isEmptySquare = false;
+        uint256 speciesIndex;
+        uint8 row;
+        uint8 col;
+        uint8 modulo = NUM_ROWS;
 
-        uint256[] memory words = getWords(requestId);
+        while(!isEmptySquare) {
+            speciesIndex = words[currId % words.length] % species.length;
+            row = uint8(words[currId % words.length] % modulo);
+            col = uint8(words[(currId + 1) % words.length] % modulo);
 
-        uint256 speciesIndex = words[0] % species.length;
+            if (safariMap[row][col] == 0) {
+                isEmptySquare = true;
+            } else {
+                modulo -= 1;
+            }
+        }
 
-        uint8 row = uint8(words[0] % 128);
-        uint8 col = uint8(words[1] % 128);
+        // console.log("Row => ", row);
+        // console.log("Col => ", col);
 
         Entitty memory wipAnimal = Entitty({
             entittyType: to == address(this) ? EntittyType
             .WILD_ANIMAL : EntittyType.DOMESTICATED_ANIMAL,
-            species: species[speciesIndex], // TODO: use VRF
+            species: species[speciesIndex],
             id: currId,
             size: words[0] % 50,
             strength: words[0] % 49,
@@ -215,7 +226,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
                 col: col,
                 pendingAction: Action.None
             }),
-            owner: address(this)
+            owner: to
         });
 
         quiver[to].push(wipAnimal);
@@ -284,16 +295,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver {
 
         _safeMint(to, currId);
 
-        console.log("MINT TO => ", to);
-
-        // TODO: use VRF to randomly try to find an empty square
         createEntitty(to);
 
         return currId;
     }
 
     function getQuiver() public view returns (Entitty[] memory myQuiver){
-        console.log("msg.sender => ", msg.sender);
         return quiver[msg.sender];
     }
 
