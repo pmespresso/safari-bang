@@ -35,7 +35,7 @@ abstract contract MultiOwnable is Context {
     /**
      * @dev Throws if called by any account other than the owner.
      */
-    modifier onlyOwner() {
+    modifier onlySubOwner() {
         _checkOwner();
         _;
     }
@@ -82,7 +82,7 @@ abstract contract MultiOwnable is Context {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public virtual onlyOwner {
+    function renounceOwnership() public virtual onlySubOwner {
         _transferOwnership(address(0));
     }
 
@@ -101,7 +101,7 @@ abstract contract MultiOwnable is Context {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    function transferOwnership(address newOwner) public virtual onlySubOwner {
         require(newOwner != address(0), "MultieOwnable: new owner is the zero address");
         _transferOwnership(newOwner);
     }

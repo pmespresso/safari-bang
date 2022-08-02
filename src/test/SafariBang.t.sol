@@ -3,7 +3,10 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
-import "../src/SafariBang.sol";
+
+import "../SafariBang.sol";
+import "./mocks/LinkToken.sol";
+import "./mocks/MockVRFCoordinatorV2.sol";
 
 contract SafariBangTest is Test {
     using stdStorage for StdStorage;
@@ -13,12 +16,60 @@ contract SafariBangTest is Test {
 
     address Alice = address(1);
 
-    function setUp() public {
-        safariBang = new SafariBang("SafariBang", "SAFABA", "https://ipfs.io/ipfs/");
+    uint64 subId;
+    uint96 constant FUND_AMOUNT = 1 * 10**18;
 
-        // CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
-        // Alice = cheats.addr(1);
+    LinkToken linkToken;
+    MockVRFCoordinatorV2 vrfCoordinator;
+
+    function setUp() public {
+        linkToken = new LinkToken();
+        vrfCoordinator = new MockVRFCoordinatorV2();
+        subId = vrfCoordinator.createSubscription();
+        vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
+
+        safariBang = new SafariBang(
+            "SafariBang",
+            "SAFABA",
+            "https://ipfs.io/ipfs/",
+            subId,
+            address(vrfCoordinator),
+            address(linkToken),
+            vrfCoordinator
+        );
+
         vm.deal(Alice, 100 ether);
+    }
+
+    function testCreateEntitty() public {
+        uint new_guy_id = safariBang.createEntitty(Alice);
+
+        (SafariBang.EntittyType entittyType, 
+            SafariBang.Specie species,
+            uint256 id, 
+            uint256 size,
+            uint256 strength,
+            uint256 speed,
+            uint256 fertility,
+            uint256 anxiety,
+            uint256 aggression,
+            uint256 libido,
+            bool gender,
+            SafariBang.Position memory position,
+            address owner) = safariBang.idToEntitty(new_guy_id);
+
+        console.log("size: ", size);
+        console.log("strength: ", strength);
+        console.log("speed: ", speed);
+        console.log("fertility: ", fertility);
+        console.log("anxiety: ", anxiety);
+        console.log("aggression: ", aggression);
+        console.log("libido: ", libido);
+        console.log("gender: ", gender);
+        console.log("position.row", position.row);
+        console.log("position.col", position.col);
+        assert(position.row >= 0 && position.row <= 128);
+        assert(position.col >= 0 && position.col <= 128);
     }
 
     function testMapGenesis() public {
@@ -44,21 +95,21 @@ contract SafariBangTest is Test {
 
         // CASE 3: check positions of animals by mapping(id => entitty)
         (SafariBang.EntittyType entittyType, 
-            SafariBang.Species species,
+            SafariBang.Specie species,
             uint256 id, 
-            uint32 size,
-            uint32 strength,
-            uint32 speed,
-            uint32 fertility,
-            uint32 anxiety,
-            uint32 aggression,
-            uint32 libido,
+            uint256 size,
+            uint256 strength,
+            uint256 speed,
+            uint256 fertility,
+            uint256 anxiety,
+            uint256 aggression,
+            uint256 libido,
             bool gender,
-            // uint32[2] memory position,
+            SafariBang.Position memory position,
             address owner) = safariBang.idToEntitty(idOfMyBoyAtRow0Col69);
         
         assertEq(id, 69);
-        assertEq(size, 1);
+        // assertGt(size, 1);
         assertEq(gender, true);
         assertEq(owner, address(safariBang));
         console.log("owner of 69", owner);
