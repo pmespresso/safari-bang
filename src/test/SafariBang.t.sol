@@ -73,7 +73,7 @@ contract SafariBangTest is Test {
     }
 
     function testMapGenesis() public {
-        safariBang.mapGenesis(79);
+        safariBang.mapGenesis(80);
 
         // CASE 1: check currentTokenId is incremented
         uint256 slot = stdstore
@@ -125,7 +125,7 @@ contract SafariBangTest is Test {
         // quiver of SafariBang Contract should have all 10
         SafariBang.Entitty[] memory safariBangQuiver = safariBang.getQuiver();
 
-        assertEq(safariBangQuiver.length, 9);
+        assertEq(safariBangQuiver.length, 10);
 
         vm.stopPrank();
 
