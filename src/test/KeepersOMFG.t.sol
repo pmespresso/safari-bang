@@ -61,25 +61,43 @@ contract KeepersOMFGTest is Test {
     function testClearsSafariMapStateWithAllEmptyQuivers() public {
         uint currentTokenId = safariBang.currentTokenId();
         
-        console.log("BEFORE UPKEEP");
+        // console.log("BEFORE UPKEEP");
         // before upkeep, every id should occupy a cell
         for (uint i = 1; i <= currentTokenId; i++) {
             (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
-            
+
             assert(!(row == 0 && col == 0));
         }
+
+        // Upkeep
+        // cheats.expectEmit(false, true, true, true);
+        uint balanceBefore = safariBang.balanceOf(address(safariBang));
+        console.log("Balance before: ", balanceBefore);
+        cheats.warp(staticTime + INTERVAL + 1);
+        asteroidKeeper.performUpkeep("0x");
+
+        // console.log("AFTER UPKEEP");
+        for (uint i = 1; i <= currentTokenId; i++) {
+            (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
+            
+            require(row == 0 && col == 0, "Position should be cleared");
+        }
+        uint balanceAfter = safariBang.balanceOf(address(safariBang));
+        console.log("Balance After: ", balanceAfter);
+
+        assert(balanceBefore > balanceAfter);
+        assert(balanceAfter == 0);
+    }
+
+    function testClearsMapWithMixedPlayersAndWildAnimals() public {
 
         // Upkeep
         cheats.warp(staticTime + INTERVAL + 1);
         asteroidKeeper.performUpkeep("0x");
 
-        console.log("AFTER UPKEEP");
-        for (uint i = 1; i <= currentTokenId; i++) {
-            (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
+        // For Wild Animals, check that they are wiped
 
-            require(row == 0 && col == 0, "Position should be cleared");
-            
-        }
+        // For Domesicated Animals, check that the next animal in quiver takes its spot, if none in quiver, wipe.
     }
 
     function testCheckupReturnsFalseBeforeTime() public {

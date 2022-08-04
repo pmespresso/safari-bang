@@ -161,16 +161,15 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         // Take Animal's off the map if quiver empty, else place next up on the same position.
         for (uint i = 1; i <= currentTokenId; i++) {
             Position memory position = idToPosition[i];
-            console.log("can get position");
+
             if (!(position.row == 0 && position.col == 0)) {
-                console.log("position.row: ", position.row);
-                console.log("position.col: ", position.col);
+                // console.log("position.row: ", position.row);
+                // console.log("position.col: ", position.col);
                 delete safariMap[position.row][position.col];
 
                 // update the Position in Animal itself
                 Animal memory animal = idToAnimal[i];
 
-                console.log("It gets this far: ", animal.owner);
                 deleteFirstAnimalFromQuiver(animal.owner, animal.id);
             }
         }
