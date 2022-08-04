@@ -88,7 +88,7 @@ contract SafariBangTest is Test {
 
         assertEq(uint256(currentTokenId), 80);
 
-        // CASE 2: check positions of animals by mapping(id => entitty)
+        // CASE 2: EntittyById check positions of animals by mapping(id => entitty)
         (SafariBang.EntittyType entittyType, 
             SafariBang.Specie species,
             uint256 id, 
@@ -105,12 +105,18 @@ contract SafariBangTest is Test {
         
         assertEq(id, 69);
         assertEq(owner, address(safariBang));
-        console.log("row of id 69 ", position.row);
-        console.log("col of id 69 ", position.col);
 
-        // CASE 3: check if square is populated by safariMap[][]
+        // CASE 3: Entitty by safariMap[][]
         uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(position.row, position.col);
         assertEq(idOfMyBoyAtRow0Col69, 69);
+
+        // CASE 4: idToPosition
+        (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(69);
+        assertEq(position.row, row);
+        assertEq(position.col, col);
+
+        // TODO: Compare Enums how?
+        // assertEq(pendingAction, position.pendingAction);
     }
 
     function testQuiver() public {
@@ -123,7 +129,7 @@ contract SafariBangTest is Test {
         vm.startPrank(address(safariBang));
 
         // quiver of SafariBang Contract should have all 10
-        SafariBang.Entitty[] memory safariBangQuiver = safariBang.getQuiver();
+        SafariBang.Entitty[] memory safariBangQuiver = safariBang.getQuiver(address(safariBang));
 
         assertEq(safariBangQuiver.length, 10);
 
@@ -135,7 +141,7 @@ contract SafariBangTest is Test {
         // mint one for Alice
         safariBang.mintTo{value: 0.08 ether}(Alice);
 
-        SafariBang.Entitty[] memory userQuiver = safariBang.getQuiver();
+        SafariBang.Entitty[] memory userQuiver = safariBang.getQuiver(address(safariBang));
 
         // quiver of user should have one Animal
         assertEq(userQuiver.length, 1);

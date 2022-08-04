@@ -19,7 +19,7 @@ import "forge-std/console.sol";
  * the owner.
  */
 abstract contract MultiOwnable is Context {
-    address private _superOwner;
+    address public superOwner;
     address private _owner;
 
     event SuperOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -49,7 +49,7 @@ abstract contract MultiOwnable is Context {
     }
 
     modifier onlyOneOfTheOwners() {
-        require(_superOwner == _msgSender() || _owner == _msgSender(), "MultiOwnable: caller must be either owner or superOwner.");
+        require(superOwner == _msgSender() || _owner == _msgSender(), "MultiOwnable: caller must be either owner or superOwner.");
         _;
     }
 
@@ -57,7 +57,7 @@ abstract contract MultiOwnable is Context {
      * @dev Returns the addresses of the current owners.
      */
     function owners() public view virtual returns (address[2] memory) {
-        return [_superOwner, _owner];
+        return [superOwner, _owner];
     }
 
 
@@ -65,7 +65,7 @@ abstract contract MultiOwnable is Context {
      * @dev Throws if the sender is not a super owner.
      */
     function _checkSuperOwner() internal view virtual {
-        require(_superOwner == _msgSender(), "MultiOwnable: caller is not a super owner");
+        require(superOwner == _msgSender(), "MultiOwnable: caller is not a super owner");
     }
 
     /**
@@ -92,8 +92,8 @@ abstract contract MultiOwnable is Context {
     }
 
         function _transferSuperOwnership(address newOwner) internal virtual {
-        address oldOwner = _superOwner;
-        _superOwner = newOwner;
+        address oldOwner = superOwner;
+        superOwner = newOwner;
         emit SuperOwnershipTransferred(oldOwner, newOwner);
     }
 

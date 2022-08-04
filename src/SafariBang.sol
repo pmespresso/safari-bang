@@ -20,7 +20,6 @@ error WithdrawTransfer();
 
 contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage {
     using Strings for uint256;
-
     constructor(
         string memory _name,
         string memory _symbol,
@@ -85,8 +84,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             }
         }
 
-        // console.log("Row => ", row);
-        // console.log("Col => ", col);
+        Position memory position = Position({
+            row: row,
+            col: col,
+            pendingAction: Action.None
+        });
 
         Entitty memory wipAnimal = Entitty({
             entittyType: to == address(this) ? EntittyType
@@ -101,17 +103,17 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             aggression: words[0] % 45,
             libido: words[0] % 44, 
             gender: words[0] % 2 == 0 ? true : false,
-            position: Position({
-                row: row,
-                col: col,
-                pendingAction: Action.None
-            }),
+            position: position,
             owner: to
         });
 
-        quiver[to].push(wipAnimal);
+        // only Players have quiver, WILD_ANIMALS do not belong in a quiver
+        if (wipAnimal.owner != address(this)) {
+            quiver[to].push(wipAnimal);    
+        }
         safariMap[row][col] = currId;
         idToEntitty[currId] = wipAnimal;
+        idToPosition[currId] = position;
 
         return wipAnimal.id;
     }
@@ -151,11 +153,54 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     /**
         @dev An Asteroid hits the map every interval of X blocks and we'll reset the game state:
             a) All Wild Animals are burned and taken off the map.
-            b) All Domesticated Animals are burned and taken off the map.
+            b) All Domesticated Animals that are on the map are burned and taken off the map. If there is another one in the quiver, that one takes its place on the same cell.
             c) mapGenesis() again, but minus the delta of how many domesticated animals survived (were minted but in the quiver, not on the map).
      */
     function omfgAnAsteroidOhNo() public returns (bool) {
+
+        // Take Entitty's off the map if quiver empty, else place next up on the same position.
+        for (uint i = 1; i <= currentTokenId; i++) {
+            Position memory position = idToPosition[i];
+            console.log("can get position");
+            if (!(position.row == 0 && position.col == 0)) {
+                console.log("position.row: ", position.row);
+                console.log("position.col: ", position.col);
+                delete safariMap[position.row][position.col];
+
+                // update the Position in Entitty itself
+                Entitty memory entitty = idToEntitty[i];
+
+                console.log("It gets this far: ", entitty.owner);
+                deleteFirstEntittyFromQuiver(entitty.owner, entitty.id);
+            }
+        }
         
+        return true;
+    }
+
+    function deleteFirstEntittyFromQuiver(address who, uint id) internal {
+        // You're out of animals, remove from map and burn
+        if (who == address(this) || quiver[who].length <= 1) {
+            console.log("Ain't no quiver");
+            delete idToEntitty[id];
+            delete idToPosition[id];
+            delete quiver[who];
+            
+            _burn(id);
+        } else {
+            Entitty memory deadEntitty = quiver[who][0];
+            console.log("In else block");
+            // delete first animal in quiver, replace with last one
+            quiver[who][0] = quiver[who][quiver[who].length - 1];
+
+            quiver[who].pop();
+                    
+            Entitty memory nextUp = quiver[who][0];
+            nextUp.position = deadEntitty.position;
+            idToPosition[nextUp.id] = nextUp.position;
+            idToEntitty[nextUp.id] = nextUp;
+            safariMap[nextUp.position.row][nextUp.position.col] = nextUp.id;
+        }
     }
 
     /**
@@ -180,8 +225,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         return currId;
     }
 
-    function getQuiver() public view returns (Entitty[] memory myQuiver){
-        return quiver[msg.sender];
+    function getQuiver(address who) public view returns (Entitty[] memory myQuiver){
+        return quiver[who];
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
@@ -205,11 +250,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         view
         returns (uint256[] memory)
     {
-        uint256[] memory words = new uint256[](vrfConsumer.s_numWords());
+        uint256[] memory _words = new uint256[](vrfConsumer.s_numWords());
         for (uint256 i = 0; i < vrfConsumer.s_numWords(); i++) {
-            words[i] = uint256(keccak256(abi.encode(requestId, i)));
+            _words[i] = uint256(keccak256(abi.encode(requestId, i)));
         }
-        return words;
+        return _words;
     }
 
     function onERC721Received(
