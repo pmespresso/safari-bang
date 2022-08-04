@@ -48,11 +48,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
         for (uint i = 0; i < howMany; i++) {
-            createEntitty(address(this));
+            createAnimal(address(this));
         }
     }
 
-    function createEntitty(address to) public returns (uint newGuyId) {
+    function createAnimal(address to) public returns (uint newGuyId) {
         uint256 currId = ++currentTokenId;
 
         // console.log("Minting => ", currId);
@@ -90,9 +90,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             pendingAction: Action.None
         });
 
-        Entitty memory wipAnimal = Entitty({
-            entittyType: to == address(this) ? EntittyType
-            .WILD_ANIMAL : EntittyType.DOMESTICATED_ANIMAL,
+        Animal memory wipAnimal = Animal({
+            animalType: to == address(this) ? AnimalType
+            .WILD_ANIMAL : AnimalType.DOMESTICATED_ANIMAL,
             species: species[speciesIndex],
             id: currId,
             size: words[0] % 50,
@@ -107,19 +107,19 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             owner: to
         });
 
-        // only Players have quiver, WILD_ANIMALS do not belong in a quiver
+        // only Animals have quiver, WILD_ANIMALS do not belong in a quiver
         if (wipAnimal.owner != address(this)) {
             quiver[to].push(wipAnimal);    
         }
         safariMap[row][col] = currId;
-        idToEntitty[currId] = wipAnimal;
+        idToAnimal[currId] = wipAnimal;
         idToPosition[currId] = position;
 
         return wipAnimal.id;
     }
 
     /** 
-    @dev A player must make a move on their turn. You can only move one square at a time.
+    @dev A animal must make a move on their turn. You can only move one square at a time.
 
     Possible cases:
         a) Empty square: just update position and that's it.
@@ -158,7 +158,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
      */
     function omfgAnAsteroidOhNo() public returns (bool) {
 
-        // Take Entitty's off the map if quiver empty, else place next up on the same position.
+        // Take Animal's off the map if quiver empty, else place next up on the same position.
         for (uint i = 1; i <= currentTokenId; i++) {
             Position memory position = idToPosition[i];
             console.log("can get position");
@@ -167,38 +167,38 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
                 console.log("position.col: ", position.col);
                 delete safariMap[position.row][position.col];
 
-                // update the Position in Entitty itself
-                Entitty memory entitty = idToEntitty[i];
+                // update the Position in Animal itself
+                Animal memory animal = idToAnimal[i];
 
-                console.log("It gets this far: ", entitty.owner);
-                deleteFirstEntittyFromQuiver(entitty.owner, entitty.id);
+                console.log("It gets this far: ", animal.owner);
+                deleteFirstAnimalFromQuiver(animal.owner, animal.id);
             }
         }
         
         return true;
     }
 
-    function deleteFirstEntittyFromQuiver(address who, uint id) internal {
+    function deleteFirstAnimalFromQuiver(address who, uint id) internal {
         // You're out of animals, remove from map and burn
         if (who == address(this) || quiver[who].length <= 1) {
             console.log("Ain't no quiver");
-            delete idToEntitty[id];
+            delete idToAnimal[id];
             delete idToPosition[id];
             delete quiver[who];
             
             _burn(id);
         } else {
-            Entitty memory deadEntitty = quiver[who][0];
+            Animal memory deadAnimal = quiver[who][0];
             console.log("In else block");
             // delete first animal in quiver, replace with last one
             quiver[who][0] = quiver[who][quiver[who].length - 1];
 
             quiver[who].pop();
                     
-            Entitty memory nextUp = quiver[who][0];
-            nextUp.position = deadEntitty.position;
+            Animal memory nextUp = quiver[who][0];
+            nextUp.position = deadAnimal.position;
             idToPosition[nextUp.id] = nextUp.position;
-            idToEntitty[nextUp.id] = nextUp;
+            idToAnimal[nextUp.id] = nextUp;
             safariMap[nextUp.position.row][nextUp.position.col] = nextUp.id;
         }
     }
@@ -220,12 +220,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
         _safeMint(to, currId);
 
-        createEntitty(to);
+        createAnimal(to);
 
         return currId;
     }
 
-    function getQuiver(address who) public view returns (Entitty[] memory myQuiver){
+    function getQuiver(address who) public view returns (Animal[] memory myQuiver){
         return quiver[who];
     }
 

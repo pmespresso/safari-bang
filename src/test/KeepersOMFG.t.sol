@@ -65,11 +65,7 @@ contract KeepersOMFGTest is Test {
         // before upkeep, every id should occupy a cell
         for (uint i = 1; i <= currentTokenId; i++) {
             (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
-    
-            console.log("i => ", i);
-            console.log("row => ", row);
-            console.log("col => ", col);
-
+            
             assert(!(row == 0 && col == 0));
         }
 
@@ -81,10 +77,8 @@ contract KeepersOMFGTest is Test {
         for (uint i = 1; i <= currentTokenId; i++) {
             (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
 
-            console.log("i => ", i);
-            console.log("row => ", row);
-            console.log("col => ", col);
             require(row == 0 && col == 0, "Position should be cleared");
+            
         }
     }
 

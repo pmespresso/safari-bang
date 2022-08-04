@@ -37,7 +37,7 @@ contract SafariBangStorage {
     uint32 public roundCounter; // keep track of how many rounds of asteroid destruction
 
     // _superOwner will always be the contract address, in order to clear state with asteroid later.
-    enum EntittyType {
+    enum AnimalType {
         DOMESTICATED_ANIMAL, // _owner is some Eth address
         WILD_ANIMAL // _owner is SafariBang contract address
     }
@@ -86,8 +86,8 @@ contract SafariBangStorage {
     }
 
     // probably put this offchain?
-    struct Entitty {
-        EntittyType entittyType;
+    struct Animal {
+        AnimalType animalType;
         Specie species; // this determines the image
         uint256 id;
         uint256 size;
@@ -102,10 +102,10 @@ contract SafariBangStorage {
         address owner;
     }
     
-    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // Row => Col => Id or 0
-    mapping(uint256 => Position) public idToPosition; // EntittyId => Position
-    mapping (uint256 => Entitty) public idToEntitty; // then look it up here
-    mapping (address => Entitty[]) internal quiver; // line up of an address's owned animals
+    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // Row => Col => AnimalId or AnimalId
+    mapping(uint256 => Position) public idToPosition; // AnimalId => Position
+    mapping (uint256 => Animal) public idToAnimal; // then look it up here
+    mapping (address => Animal[]) internal quiver; // line up of an address's owned animals
 
     Specie[20] public species = [
         Specie.ZEBRAT, // Zebra with a bratty attitude

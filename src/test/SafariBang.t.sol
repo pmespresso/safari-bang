@@ -41,10 +41,10 @@ contract SafariBangTest is Test {
         vm.deal(Alice, 100 ether);
     }
 
-    function testCreateEntitty() public {
-        uint new_guy_id = safariBang.createEntitty(Alice);
+    function testCreateAnimal() public {
+        uint new_guy_id = safariBang.createAnimal(Alice);
 
-        (SafariBang.EntittyType entittyType, 
+        (SafariBang.AnimalType animalType, 
             SafariBang.Specie species,
             uint256 id, 
             uint256 size,
@@ -56,7 +56,7 @@ contract SafariBangTest is Test {
             uint256 libido,
             bool gender,
             SafariBang.Position memory position,
-            address owner) = safariBang.idToEntitty(new_guy_id);
+            address owner) = safariBang.idToAnimal(new_guy_id);
 
         console.log("size: ", size);
         console.log("strength: ", strength);
@@ -88,8 +88,8 @@ contract SafariBangTest is Test {
 
         assertEq(uint256(currentTokenId), 80);
 
-        // CASE 2: EntittyById check positions of animals by mapping(id => entitty)
-        (SafariBang.EntittyType entittyType, 
+        // CASE 2: AnimalById check positions of animals by mapping(id => animal)
+        (SafariBang.AnimalType animalType, 
             SafariBang.Specie species,
             uint256 id, 
             uint256 size,
@@ -101,12 +101,12 @@ contract SafariBangTest is Test {
             uint256 libido,
             bool gender,
             SafariBang.Position memory position,
-            address owner) = safariBang.idToEntitty(69);
+            address owner) = safariBang.idToAnimal(69);
         
         assertEq(id, 69);
         assertEq(owner, address(safariBang));
 
-        // CASE 3: Entitty by safariMap[][]
+        // CASE 3: Animal by safariMap[][]
         uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(position.row, position.col);
         assertEq(idOfMyBoyAtRow0Col69, 69);
 
@@ -122,16 +122,14 @@ contract SafariBangTest is Test {
     function testQuiver() public {
         uint balance = Alice.balance;
 
-        console.log(balance);
-
         safariBang.mapGenesis(10);
 
         vm.startPrank(address(safariBang));
 
-        // quiver of SafariBang Contract should have all 10
-        SafariBang.Entitty[] memory safariBangQuiver = safariBang.getQuiver(address(safariBang));
+        // SafariBang contract should have no quiver, i.e. Wild Animals don't belong in a quiver
+        SafariBang.Animal[] memory safariBangQuiver = safariBang.getQuiver(address(safariBang));
 
-        assertEq(safariBangQuiver.length, 10);
+        assertEq(safariBangQuiver.length, 0);
 
         vm.stopPrank();
 
@@ -141,7 +139,7 @@ contract SafariBangTest is Test {
         // mint one for Alice
         safariBang.mintTo{value: 0.08 ether}(Alice);
 
-        SafariBang.Entitty[] memory userQuiver = safariBang.getQuiver(address(safariBang));
+        SafariBang.Animal[] memory userQuiver = safariBang.getQuiver(address(Alice));
 
         // quiver of user should have one Animal
         assertEq(userQuiver.length, 1);
