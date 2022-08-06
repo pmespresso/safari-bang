@@ -26,19 +26,18 @@ contract SafariBangStorage {
 
     uint256[] internal words;
 
-
     string public baseURI;
     uint256 public currentTokenId = 0;
-    uint256 public constant TOTAL_SUPPLY = 12_500; // map is 128 * 128 = 16384 so leave ~24% of map empty
-
-    // TODO: is this even necessary?
-    uint256 public constant MINT_PRICE = 0.08 ether;
+    uint256 public TOTAL_SUPPLY = 12_500; // map is 128 * 128 = 16384 so leave ~24% of map empty but each time asteroid happens this goes down by number of animals that were on the map.
+    uint256 public constant MINT_PRICE = 0.08 ether;// TODO: is this even necessary?
 
     uint8 public constant NUM_ROWS = 128;
     uint8 public constant NUM_COLS = 128;
 
+    uint32 public roundCounter; // keep track of how many rounds of asteroid destruction
+
     // _superOwner will always be the contract address, in order to clear state with asteroid later.
-    enum EntittyType {
+    enum AnimalType {
         DOMESTICATED_ANIMAL, // _owner is some Eth address
         WILD_ANIMAL // _owner is SafariBang contract address
     }
@@ -87,8 +86,8 @@ contract SafariBangStorage {
     }
 
     // probably put this offchain?
-    struct Entitty {
-        EntittyType entittyType;
+    struct Animal {
+        AnimalType animalType;
         Specie species; // this determines the image
         uint256 id;
         uint256 size;
@@ -102,14 +101,11 @@ contract SafariBangStorage {
         Position position;
         address owner;
     }
-
-    // Row => Col => Id or 0
-    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // just put the id's to save space?
-
-    // EntittyId => Position
-    mapping(uint256 => Position) public positionById;
-    mapping (uint256 => Entitty) public idToEntitty; // then look it up here
-    mapping (address => Entitty[]) internal quiver; // line up of an address's owned animals
+    
+    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // Row => Col => AnimalId or AnimalId
+    mapping(uint256 => Position) public idToPosition; // AnimalId => Position
+    mapping (uint256 => Animal) public idToAnimal; // then look it up here
+    mapping (address => Animal[]) internal quiver; // line up of an address's owned animals
 
     Specie[20] public species = [
         Specie.ZEBRAT, // Zebra with a bratty attitude
@@ -133,5 +129,4 @@ contract SafariBangStorage {
         Specie.HORNBILL, // who names these animals
         Specie.OXPECKER // this bird is hung like an ox]
     ];
-
 }
