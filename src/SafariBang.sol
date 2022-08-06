@@ -62,7 +62,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             revert MaxSupply();
         }
 
-        _safeMint(address(this), currId);
+        _safeMint(to, currId);
 
         // if something already there, try permutation of word until out of permutations or find empty square.
 
@@ -109,11 +109,19 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
         // only Animals have quiver, WILD_ANIMALS do not belong in a quiver
         if (wipAnimal.owner != address(this)) {
-            quiver[to].push(wipAnimal);    
+            if (quiver[to].length >= 1) {
+                wipAnimal.position = quiver[to][0].position;
+            }
+            quiver[to].push(wipAnimal);
         }
-        safariMap[row][col] = currId;
+
         idToAnimal[currId] = wipAnimal;
-        idToPosition[currId] = position;
+        idToAnimalType[currId] = wipAnimal.animalType;
+
+        if (quiver[to].length <= 1) {
+            safariMap[row][col] = currId;
+            idToPosition[currId] = position;
+        }
 
         return wipAnimal.id;
     }
@@ -178,27 +186,45 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     }
 
     function deleteFirstAnimalFromQuiver(address who, uint id) internal {
+        console.log("quiver[who].length ", quiver[who].length);
+        console.log("who == address(this)", who == address(this));
+        console.log("quiver[who].length <= 1", quiver[who].length <= 1);
         // You're out of animals, remove from map and burn
         if (who == address(this) || quiver[who].length <= 1) {
-            console.log("Ain't no quiver");
+            console.log("Time to wipe and burn: ", id);
+            Position memory position = idToPosition[id];
+            console.log("Position of next up", position.row, position.col);
+
             delete idToAnimal[id];
             delete idToPosition[id];
+            delete idToAnimalType[id];
             delete quiver[who];
+            // delete ownerOf[id]; this is what _burn does
             
+            console.log("Burning: ", id);
             _burn(id);
+            emit AnimalBurnedAndRemovedFromCell(id, position.row, position.col);
         } else {
+            console.log("Every Quiver Item: ", quiver[who][0].id, quiver[who][1].id, quiver[who][2].id);
             Animal memory deadAnimal = quiver[who][0];
-            console.log("In else block");
+            
+            _burn(deadAnimal.id);
+
             // delete first animal in quiver, replace with last one
             quiver[who][0] = quiver[who][quiver[who].length - 1];
-
             quiver[who].pop();
-                    
+
             Animal memory nextUp = quiver[who][0];
             nextUp.position = deadAnimal.position;
-            idToPosition[nextUp.id] = nextUp.position;
+            console.log("next up new position: ", nextUp.position.row, nextUp.position.col);
+            idToPosition[nextUp.id] = deadAnimal.position;
             idToAnimal[nextUp.id] = nextUp;
             safariMap[nextUp.position.row][nextUp.position.col] = nextUp.id;
+                        
+            console.log("Next up: ", nextUp.id);
+            console.log("New Quiver length: ", quiver[who].length);
+
+            emit AnimalReplacedFromQuiver(nextUp.id, nextUp.position.row, nextUp.position.col);
         }
     }
 
@@ -211,17 +237,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             revert MintPriceNotPaid();
         }
 
-        uint currId = ++currentTokenId;
-
-        if (currId > TOTAL_SUPPLY) {
+        if (currentTokenId >= TOTAL_SUPPLY) {
             revert MaxSupply();
         }
 
-        _safeMint(to, currId);
-
         createAnimal(to);
 
-        return currId;
+        return currentTokenId + 1;
     }
 
     function getQuiver(address who) public view returns (Animal[] memory myQuiver){

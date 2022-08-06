@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "../SafariBang.sol";
+import "../Storage.sol";
 import "../KeepersOMFG.sol";
 import "forge-std/Test.sol";
 import "./utils/Cheats.sol";
@@ -16,6 +17,7 @@ contract KeepersOMFGTest is Test {
     uint256 public staticTime;
     uint256 public INTERVAL;
     Cheats internal constant cheats = Cheats(HEVM_ADDRESS);
+    address Alice = address(1);
 
     function setUp() public {
         staticTime = block.timestamp;
@@ -40,7 +42,9 @@ contract KeepersOMFGTest is Test {
 
         asteroidKeeper = new KeepersOMFG(INTERVAL, address(safariBang));
 
-        safariBang.mapGenesis(10);
+        // safariBang.mapGenesis(10);
+
+        vm.deal(Alice, 100 ether);
     }
 
     /**
@@ -90,14 +94,37 @@ contract KeepersOMFGTest is Test {
     }
 
     function testClearsMapWithMixedPlayersAndWildAnimals() public {
+        vm.prank(Alice);
+
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+
+        vm.stopPrank();
+
+        console.log("Alice balance: ", safariBang.balanceOf(Alice));
 
         // Upkeep
         cheats.warp(staticTime + INTERVAL + 1);
         asteroidKeeper.performUpkeep("0x");
 
         // For Wild Animals, check that they are wiped
+        for (uint i = 1; i <= safariBang.currentTokenId(); i++) {
+            (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
+            address owner = safariBang.ownerOf(i);
 
-        // For Domesicated Animals, check that the next animal in quiver takes its spot, if none in quiver, wipe.
+            // Wild
+            if (owner == address(safariBang)) {
+                require(row == 0 && col == 0, "Position should be cleared");
+            } else {
+                // Domestic
+                SafariBang.Animal[] memory quiver = safariBang.getQuiver(owner);
+                uint idOfAnimalOnCell = safariBang.safariMap(row, col);
+
+                require(quiver.length == 2, "Should have 2 in quiver after asteroid");
+                require(idOfAnimalOnCell > 0, "Should have been replaced by new animal from quiver");
+            }
+        }
     }
 
     function testCheckupReturnsFalseBeforeTime() public {

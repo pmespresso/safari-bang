@@ -10,6 +10,10 @@ import "./VRFConsumerV2.sol";
 
 contract SafariBangStorage {
     using Strings for uint256;
+
+    event AnimalReplacedFromQuiver(uint indexed id, uint8 indexed row, uint8 indexed col);
+    event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
+    event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
    
     /**
         Chainlink VRF - This if for Mumbai.
@@ -102,9 +106,10 @@ contract SafariBangStorage {
         address owner;
     }
     
-    mapping(uint256 => mapping(uint256 => uint256)) public safariMap; // Row => Col => AnimalId or AnimalId
-    mapping(uint256 => Position) public idToPosition; // AnimalId => Position
+    mapping (uint256 => mapping(uint256 => uint256)) public safariMap; // Row => Col => AnimalId or AnimalId
+    mapping (uint256 => Position) public idToPosition; // AnimalId => Position
     mapping (uint256 => Animal) public idToAnimal; // then look it up here
+    mapping (uint256 => AnimalType) public idToAnimalType;
     mapping (address => Animal[]) internal quiver; // line up of an address's owned animals
 
     Specie[20] public species = [
