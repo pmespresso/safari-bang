@@ -85,9 +85,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         }
 
         Position memory position = Position({
+            animalId: currId,
             row: row,
-            col: col,
-            pendingAction: Action.None
+            col: col
         });
 
         Animal memory wipAnimal = Animal({
@@ -116,7 +116,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         }
 
         idToAnimal[currId] = wipAnimal;
-        idToAnimalType[currId] = wipAnimal.animalType;
 
         if (quiver[to].length <= 1) {
             safariMap[row][col] = currId;
@@ -127,16 +126,61 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     }
 
     /** 
-    @dev A animal must make a move on their turn. You can only move one square at a time.
-
-    Possible cases:
-        a) Empty square: just update position and that's it.
-        b) Wild Animal: You need to fight, flee, or fuck. Consequences depend on the action.
-        c) Domesicated Animal: You need to fight or fuck (cannot flee). Same consequences as above.
+    @dev A animal can move to an empty square, but it's a pussy move. You can only move one square at a time. This is only for moving to empty squares. Otherwise must fight,  or fuck
     @param direction up, down, left, or right.
     */
-    function move(Direction direction) internal returns (uint8[2] memory newPosition) {
-        return [0, 69];
+    function move(uint256 id, Direction direction) external returns (Position memory newPosition) {
+        require(ownerOf(id) == msg.sender, "Only owner can move piece");
+
+        Position memory currentPosition = idToPosition[id];
+
+        if (direction == Direction.Up) {
+            require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row - 1][currentPosition.col] = id;
+
+            Position memory newPosition = Position({
+                animalId: id,
+                row: currentPosition.row - 1,
+                col: currentPosition.col
+            });
+
+            idToPosition[id] = newPosition;
+        } else if (direction == Direction.Down) {
+            require(safariMap[currentPosition.row + 1][currentPosition.col] == 0, "can only use move on empty square");
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row + 1][currentPosition.col] = id;
+            
+            Position memory newPosition = Position({
+                animalId: id,
+                row: currentPosition.row + 1,
+                col: currentPosition.col
+            });
+
+            idToPosition[id] = newPosition;
+        } else if (direction == Direction.Left) {
+            require(safariMap[currentPosition.row][currentPosition.col - 1] == 0, "can only use move on empty square");
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row][currentPosition.col - 1] = id;
+             Position memory newPosition = Position({
+                animalId: id,
+                row: currentPosition.row,
+                col: currentPosition.col - 1
+            });
+
+            idToPosition[id] = newPosition;
+        } else if (direction == Direction.Right) {
+            require(safariMap[currentPosition.row][currentPosition.col + 1] == 0, "can only use move on empty square");
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row][currentPosition.col + 1] = id;
+            Position memory newPosition = Position({
+                animalId: id,
+                row: currentPosition.row,
+                col: currentPosition.col + 1
+            });
+
+            idToPosition[id] = newPosition;
+        }
     }
 
     /**
@@ -197,7 +241,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
             delete idToAnimal[id];
             delete idToPosition[id];
-            delete idToAnimalType[id];
             delete quiver[who];
             // delete ownerOf[id]; this is what _burn does
             

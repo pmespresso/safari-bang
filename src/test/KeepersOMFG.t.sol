@@ -68,7 +68,7 @@ contract KeepersOMFGTest is Test {
         // console.log("BEFORE UPKEEP");
         // before upkeep, every id should occupy a cell
         for (uint i = 1; i <= currentTokenId; i++) {
-            (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
+            (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(i);
 
             assert(!(row == 0 && col == 0));
         }
@@ -82,7 +82,7 @@ contract KeepersOMFGTest is Test {
 
         // console.log("AFTER UPKEEP");
         for (uint i = 1; i <= currentTokenId; i++) {
-            (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
+            (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(i);
             
             require(row == 0 && col == 0, "Position should be cleared");
         }
@@ -110,7 +110,7 @@ contract KeepersOMFGTest is Test {
 
         // For Wild Animals, check that they are wiped
         for (uint i = 1; i <= safariBang.currentTokenId(); i++) {
-            (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(i);
+            (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(i);
             address owner = safariBang.ownerOf(i);
 
             // Wild

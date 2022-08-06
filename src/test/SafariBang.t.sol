@@ -15,6 +15,8 @@ contract SafariBangTest is Test {
     SafariBang private safariBang;
 
     address Alice = address(1);
+    address Bob = address(2);
+    address Charlie = address(3);
 
     uint64 subId;
     uint96 constant FUND_AMOUNT = 1 * 10**18;
@@ -39,6 +41,8 @@ contract SafariBangTest is Test {
         );
 
         vm.deal(Alice, 100 ether);
+        vm.deal(Bob, 100 ether);
+        vm.deal(Charlie, 100 ether);
     }
 
     function testCreateAnimal() public {
@@ -111,12 +115,9 @@ contract SafariBangTest is Test {
         assertEq(idOfMyBoyAtRow0Col69, 69);
 
         // CASE 4: idToPosition
-        (uint8 row, uint8 col, SafariBang.Action pendingAction) = safariBang.idToPosition(69);
+        (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(69);
         assertEq(position.row, row);
         assertEq(position.col, col);
-
-        // TODO: Compare Enums how?
-        // assertEq(pendingAction, position.pendingAction);
     }
 
     function testQuiver() public {
@@ -148,9 +149,6 @@ contract SafariBangTest is Test {
 
         // mock a fight win, should get the animal that was beaten in the quiver
     }
-
-
-    // TODO: function testMove() public {}
 
     function testFailNoMintPricePaid() public {
         safariBang.mintTo(address(1));
