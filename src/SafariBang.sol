@@ -120,6 +120,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         if (quiver[to].length <= 1) {
             safariMap[row][col] = currId;
             idToPosition[currId] = position;
+            playerToPosition[to] = position;
         }
 
         return wipAnimal.id;
@@ -130,14 +131,22 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     @param direction up, down, left, or right.
     */
     function move(uint256 id, Direction direction) external returns (Position memory newPosition) {
+        console.log('moving id: ', id);
+
         require(ownerOf(id) == msg.sender, "Only owner can move piece");
 
         Position memory currentPosition = idToPosition[id];
 
+        console.log("current row: ", currentPosition.row);
+        console.log("current col.: ", currentPosition.col);
+        console.log("current animalId: ", currentPosition.animalId);
+
         if (direction == Direction.Up) {
             require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
+            uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row : NUM_ROWS;
+
             safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[currentPosition.row - 1][currentPosition.col] = id;
+            safariMap[newRow][currentPosition.col] = id;
 
             Position memory newPosition = Position({
                 animalId: id,
@@ -278,10 +287,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function mintTo(address to) public payable returns (uint256) {
         if (msg.value < MINT_PRICE) {
             revert MintPriceNotPaid();
-        }
-
-        if (currentTokenId >= TOTAL_SUPPLY) {
-            revert MaxSupply();
         }
 
         createAnimal(to);

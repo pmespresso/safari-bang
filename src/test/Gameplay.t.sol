@@ -57,6 +57,9 @@ contract GameplayTest is Test {
         a) Empty square: just update position and that's it.
         b) Wild Animal: You need to fight, flee, or fuck. Consequences depend on the action.
         c) Domesicated Animal: You need to fight or fuck (cannot flee). Same consequences as above.
+    Edge cases:
+        1. move off map, e.g. left from col 0,  should wrap to other side of map(this world is not flat).
+
      */
     function testMove() public {
         (uint animalId, uint8 row, uint8 col) = safariBang.playerToPosition(Alice);

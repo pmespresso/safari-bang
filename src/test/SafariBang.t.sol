@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 
+import "../Storage.sol";
 import "../SafariBang.sol";
 import "./mocks/LinkToken.sol";
 import "./mocks/MockVRFCoordinatorV2.sol";
@@ -151,11 +152,43 @@ contract SafariBangTest is Test {
     }
 
     function testFailNoMintPricePaid() public {
-        safariBang.mintTo(address(1));
+        safariBang.mintTo(Alice);
     }
 
     function testMintPricePaid() public {
-        safariBang.mintTo{value: 0.08 ether}(address(1));
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+    }
+
+    function testMintTo() public {
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+        safariBang.mintTo{value: 0.08 ether}(Bob);
+        safariBang.mintTo{value: 0.08 ether}(Charlie);
+
+        (uint aliceCurrentAnimalId, uint8 aliceRow, uint8 aliceCol) = safariBang.playerToPosition(Alice);
+        (uint bobCurrentAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
+        (uint charlieCurrentAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
+        
+        uint _aliceCurrentAnimalId = safariBang.safariMap(aliceRow, aliceCol);
+        uint _bobCurrentAnimalId = safariBang.safariMap(bobRow, bobCol);
+        uint _charlieCurrentAnimalId = safariBang.safariMap(charlieRow, charlieCol);
+
+        require(aliceRow >= 0 && aliceCol >= 0, "Alice position must be >= 0");
+        require(aliceRow <= 127 && aliceCol <= 127, "Alice position must be <= Grid Size");
+        require(_aliceCurrentAnimalId == aliceCurrentAnimalId, "Alice current animal Id in safariMap should match in playerToPosition");
+
+        require(bobRow >= 0 && bobCol >= 0, "Bob position must be >= 0");
+        require(bobRow <= 127 && bobCol <= 127, "Bob position must be <= Grid Size");
+        require(_bobCurrentAnimalId == bobCurrentAnimalId, "Bob current animal Id in safariMap should match in playerToPosition");
+
+        require(charlieRow >= 0 && charlieCol >= 0, "Charlie position must be >= 0");
+        require(charlieRow <= 127 && charlieCol <= 127, "Charlie position must be <= Grid Size");
+        require(_charlieCurrentAnimalId == charlieCurrentAnimalId, "Charlie current animal Id in safariMap should match in playerToPosition");
+
+        console.log("Alice: ", aliceRow, aliceCol);
+        console.log("Bob: ", bobRow, bobCol);
+        console.log("Charlie: ", charlieRow, charlieCol);
+
+        require(!(aliceRow == bobRow && aliceCol == bobCol) && !(bobRow == charlieRow && bobCol == charlieCol), "Should not occupy same cell");
     }
 
     function testFailMaxSupplyReached() public {
@@ -174,7 +207,7 @@ contract SafariBangTest is Test {
     }
 
     function testNewMintOwnerRegistered() public {
-        safariBang.mintTo{value: 0.08 ether}(address(1));
+        safariBang.mintTo{value: 0.08 ether}(Alice);
         uint256 slotOfNewOwner = stdstore
             .target(address(safariBang))
             .sig(safariBang.ownerOf.selector)
@@ -186,24 +219,24 @@ contract SafariBangTest is Test {
                     (vm.load(address(safariBang), bytes32(abi.encode(slotOfNewOwner))))
                 )
         );
-        assertEq(address(ownerOfTokenIdOne), address(1));
+        assertEq(address(ownerOfTokenIdOne), Alice);
     }
 
     function testBalanceIncremented() public {
-        safariBang.mintTo{value: 0.08 ether}(address(1));
-        // get the storage slot of the balanceOf address(1)
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+        // get the storage slot of the balanceOf Alice
         uint256 slotBalance = stdstore
             .target(address(safariBang))
             .sig(safariBang.balanceOf.selector)
-            .with_key(address(1))
+            .with_key(Alice)
             .find();
-        // vm.load(contract, balanceOf(address(1)))
+        // vm.load(contract, balanceOf(Alice))
         uint256 balanceFirstMint = uint256(
             vm.load(address(safariBang), bytes32(slotBalance))
         );
         assertEq(balanceFirstMint,1);
 
-        safariBang.mintTo{value: 0.08 ether}(address(1));
+        safariBang.mintTo{value: 0.08 ether}(Alice);
 
         uint256 balanceSecondMint = uint256(
             vm.load(address(safariBang), bytes32(slotBalance))
@@ -225,8 +258,8 @@ contract SafariBangTest is Test {
     }
 
     function testFailUnSafeContractReceiver() public {
-        vm.etch(address(1), bytes("mock code"));
-        safariBang.mintTo{value: 0.08 ether}(address(1));
+        vm.etch(Alice, bytes("mock code"));
+        safariBang.mintTo{value: 0.08 ether}(Alice);
     }
 
     function testWithdrawalWorksAsOwner() public {
