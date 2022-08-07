@@ -62,6 +62,8 @@ contract GameplayTest is Test {
 
      */
     function testMove() public {
+        vm.startPrank(Alice);
+
         (uint animalId, uint8 row, uint8 col) = safariBang.playerToPosition(Alice);
 
         // Case 1: Move to Empty Square
@@ -69,6 +71,11 @@ contract GameplayTest is Test {
 
         SafariBang.Position memory newPosition = safariBang.move(animalId, SafariBangStorage.Direction.Up);
 
+        console.log("New Row: ", newPosition.row);
+        console.log("New Col: ", newPosition.col);
+
         require(newPosition.row == row - 1 && newPosition.col == col, "Should have moved up one row in the same col");
+
+        vm.stopPrank();
     }
 }

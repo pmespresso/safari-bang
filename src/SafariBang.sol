@@ -131,30 +131,26 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     @param direction up, down, left, or right.
     */
     function move(uint256 id, Direction direction) external returns (Position memory newPosition) {
-        console.log('moving id: ', id);
+        Position memory currentPosition = playerToPosition[msg.sender];
 
-        require(ownerOf(id) == msg.sender, "Only owner can move piece");
-
-        Position memory currentPosition = idToPosition[id];
-
-        console.log("current row: ", currentPosition.row);
-        console.log("current col.: ", currentPosition.col);
-        console.log("current animalId: ", currentPosition.animalId);
+        require(ownerOf(currentPosition.animalId) == msg.sender, "Only owner can move piece");
 
         if (direction == Direction.Up) {
             require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
-            uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row : NUM_ROWS;
-
-            safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[newRow][currentPosition.col] = id;
+            uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row - 1 : NUM_ROWS;
 
             Position memory newPosition = Position({
                 animalId: id,
-                row: currentPosition.row - 1,
+                row: newRow,
                 col: currentPosition.col
             });
 
             idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[newRow][currentPosition.col] = id;
+
+            return newPosition;
         } else if (direction == Direction.Down) {
             require(safariMap[currentPosition.row + 1][currentPosition.col] == 0, "can only use move on empty square");
             safariMap[currentPosition.row][currentPosition.col] = 0;
@@ -167,6 +163,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             });
 
             idToPosition[id] = newPosition;
+
+            return newPosition;
         } else if (direction == Direction.Left) {
             require(safariMap[currentPosition.row][currentPosition.col - 1] == 0, "can only use move on empty square");
             safariMap[currentPosition.row][currentPosition.col] = 0;
@@ -178,6 +176,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             });
 
             idToPosition[id] = newPosition;
+
+            return newPosition;
         } else if (direction == Direction.Right) {
             require(safariMap[currentPosition.row][currentPosition.col + 1] == 0, "can only use move on empty square");
             safariMap[currentPosition.row][currentPosition.col] = 0;
@@ -189,6 +189,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             });
 
             idToPosition[id] = newPosition;
+
+            return newPosition;
         }
     }
 
