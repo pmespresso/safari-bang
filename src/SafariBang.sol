@@ -55,6 +55,16 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function createAnimal(address to) public returns (uint newGuyId) {
         uint256 currId = ++currentTokenId;
 
+        // if you mint multiple you get more turns
+        // safari gets as many moves as there are animals 
+        if (movesRemaining[to] > 0) {
+            movesRemaining[to] += 1;
+        } else {
+            movesRemaining[to] = 1;
+        }
+
+        // console.log("Create animal for ", to, " with moves remaining: ", movesRemaining[to]);
+
         // console.log("Minting => ", currId);
 
         if (currId > TOTAL_SUPPLY) {
@@ -85,9 +95,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         }
 
         Position memory position = Position({
+            animalId: currId,
             row: row,
-            col: col,
-            pendingAction: Action.None
+            col: col
         });
 
         Animal memory wipAnimal = Animal({
@@ -116,33 +126,106 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         }
 
         idToAnimal[currId] = wipAnimal;
-        idToAnimalType[currId] = wipAnimal.animalType;
 
         if (quiver[to].length <= 1) {
             safariMap[row][col] = currId;
             idToPosition[currId] = position;
+            playerToPosition[to] = position;
         }
 
         return wipAnimal.id;
     }
 
     /** 
-    @dev A animal must make a move on their turn. You can only move one square at a time.
-
-    Possible cases:
-        a) Empty square: just update position and that's it.
-        b) Wild Animal: You need to fight, flee, or fuck. Consequences depend on the action.
-        c) Domesicated Animal: You need to fight or fuck (cannot flee). Same consequences as above.
+    @dev A animal can move to an empty square, but it's a pussy move. You can only move one square at a time. This is only for moving to empty squares. Otherwise must fight,  or fuck
     @param direction up, down, left, or right.
     */
-    function move(Direction direction) internal returns (uint8[2] memory newPosition) {
-        return [0, 69];
+    function move(uint256 id, Direction direction) external returns (Position memory newPosition) {
+        Position memory currentPosition = playerToPosition[msg.sender];
+
+        console.log("Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
+
+        require(ownerOf(currentPosition.animalId) == msg.sender, "Only owner can move piece");
+        require(movesRemaining[msg.sender] > 0, "You are out of moves");
+
+        movesRemaining[msg.sender] -= 1;
+
+        if (direction == Direction.Up) {
+            require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
+            
+            uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row - 1 : NUM_ROWS;
+
+            Position memory newPosition = Position({
+                animalId: id,
+                row: newRow,
+                col: currentPosition.col
+            });
+
+            idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[newRow][currentPosition.col] = id;
+
+            return newPosition;
+        } else if (direction == Direction.Down) {
+            require(safariMap[currentPosition.row + 1][currentPosition.col] == 0, "can only use move on empty square");
+
+            uint8 newRow = 
+                currentPosition.row + 1 <= NUM_ROWS 
+                ? currentPosition.row + 1
+                : 0;
+            
+            Position memory newPosition = Position({
+                animalId: id,
+                row: newRow,
+                col: currentPosition.col
+            });
+
+            idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[newRow][currentPosition.col] = id;
+
+            return newPosition;
+        } else if (direction == Direction.Left) {
+            require(safariMap[currentPosition.row][currentPosition.col - 1] == 0, "can only use move on empty square");
+            
+            uint8 newCol = 
+                currentPosition.col - 1 >= 0
+                ? currentPosition.col - 1
+                : NUM_COLS;
+            
+            Position memory newPosition = currentPosition;
+            newPosition.col = newCol;
+
+            idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row][newCol] = id;
+
+            return newPosition;
+        } else if (direction == Direction.Right) {
+            require(safariMap[currentPosition.row][currentPosition.col + 1] == 0, "can only use move on empty square");
+            uint8 newCol = 
+                currentPosition.col + 1 <= NUM_COLS 
+                ? currentPosition.col + 1
+                : 0;
+            
+            Position memory newPosition = currentPosition;
+            newPosition.col = newCol;
+
+            idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row][newCol] = id;
+
+            return newPosition;
+        }
     }
 
     /**
         @dev Fight the animal on the same square as you're trying to move to.
         
-
         If succeed, take the square and the animal goes into your quiver. 
         If fail, you lose the animal and you're forced to use the next animal in your quiver, or mint a new one if you don't have one, or wait till the next round if there are no more animals to mint.
      */
@@ -197,7 +280,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
             delete idToAnimal[id];
             delete idToPosition[id];
-            delete idToAnimalType[id];
             delete quiver[who];
             // delete ownerOf[id]; this is what _burn does
             
@@ -235,10 +317,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function mintTo(address to) public payable returns (uint256) {
         if (msg.value < MINT_PRICE) {
             revert MintPriceNotPaid();
-        }
-
-        if (currentTokenId >= TOTAL_SUPPLY) {
-            revert MaxSupply();
         }
 
         createAnimal(to);

@@ -69,13 +69,6 @@ contract SafariBangStorage {
         OXPECKER // this bird is hung like an ox
     }
 
-    enum Action {
-        Fuck,
-        Fight,
-        Flee,
-        None
-    }
-
     enum Direction {
         Up,
         Down,
@@ -84,9 +77,9 @@ contract SafariBangStorage {
     }
     
     struct Position {
+        uint animalId;
         uint8 row;
         uint8 col;
-        Action pendingAction;
     }
 
     // probably put this offchain?
@@ -106,11 +99,12 @@ contract SafariBangStorage {
         address owner;
     }
     
-    mapping (uint256 => mapping(uint256 => uint256)) public safariMap; // Row => Col => AnimalId or AnimalId
-    mapping (uint256 => Position) public idToPosition; // AnimalId => Position
-    mapping (uint256 => Animal) public idToAnimal; // then look it up here
-    mapping (uint256 => AnimalType) public idToAnimalType;
-    mapping (address => Animal[]) internal quiver; // line up of an address's owned animals
+    mapping (uint256 => mapping(uint256 => uint256)) public safariMap; // safariMap[row][col] => animalId
+    mapping (uint256 => Position) public idToPosition;
+    mapping (address => Position) public playerToPosition;
+    mapping (uint256 => Animal) public idToAnimal;
+    mapping (address => Animal[]) internal quiver;
+    mapping (address => uint8) public movesRemaining; // Maybe you can get powerups for more moves or something.
 
     Specie[20] public species = [
         Specie.ZEBRAT, // Zebra with a bratty attitude
