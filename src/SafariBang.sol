@@ -137,6 +137,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
         if (direction == Direction.Up) {
             require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
+            
             uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row - 1 : NUM_ROWS;
 
             Position memory newPosition = Position({
@@ -153,42 +154,55 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             return newPosition;
         } else if (direction == Direction.Down) {
             require(safariMap[currentPosition.row + 1][currentPosition.col] == 0, "can only use move on empty square");
-            safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[currentPosition.row + 1][currentPosition.col] = id;
+
+            uint8 newRow = 
+                currentPosition.row + 1 >= NUM_ROWS 
+                ? currentPosition.row + 1
+                : 0;
             
             Position memory newPosition = Position({
                 animalId: id,
-                row: currentPosition.row + 1,
+                row: newRow,
                 col: currentPosition.col
             });
 
             idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[newRow][currentPosition.col] = id;
 
             return newPosition;
         } else if (direction == Direction.Left) {
             require(safariMap[currentPosition.row][currentPosition.col - 1] == 0, "can only use move on empty square");
-            safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[currentPosition.row][currentPosition.col - 1] = id;
-             Position memory newPosition = Position({
-                animalId: id,
-                row: currentPosition.row,
-                col: currentPosition.col - 1
-            });
+            
+            uint8 newCol = 
+                currentPosition.col - 1 >= 0
+                ? currentPosition.col - 1
+                : NUM_COLS;
+            
+            Position memory newPosition = currentPosition;
+            newPosition.col = newCol;
 
             idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row][newCol] = id;
 
             return newPosition;
         } else if (direction == Direction.Right) {
             require(safariMap[currentPosition.row][currentPosition.col + 1] == 0, "can only use move on empty square");
-            safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[currentPosition.row][currentPosition.col + 1] = id;
-            Position memory newPosition = Position({
-                animalId: id,
-                row: currentPosition.row,
-                col: currentPosition.col + 1
-            });
+            uint8 newCol = 
+                currentPosition.col + 1 <= NUM_COLS 
+                ? currentPosition.col + 1
+                : 0;
+            
+            Position memory newPosition = currentPosition;
+            newPosition.col = newCol;
 
             idToPosition[id] = newPosition;
+            playerToPosition[msg.sender] = newPosition;
+            safariMap[currentPosition.row][currentPosition.col] = 0;
+            safariMap[currentPosition.row][newCol] = id;
 
             return newPosition;
         }

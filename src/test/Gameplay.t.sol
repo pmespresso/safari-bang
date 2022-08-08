@@ -66,15 +66,46 @@ contract GameplayTest is Test {
 
         (uint animalId, uint8 row, uint8 col) = safariBang.playerToPosition(Alice);
 
-        // Case 1: Move to Empty Square
+        // Case 1: Go Up
         vm.assume(safariBang.safariMap(row - 1, col) == 0);
 
-        SafariBang.Position memory newPosition = safariBang.move(animalId, SafariBangStorage.Direction.Up);
+        SafariBang.Position memory aliceNewPosition = safariBang.move(animalId, SafariBangStorage.Direction.Up);
 
-        console.log("New Row: ", newPosition.row);
-        console.log("New Col: ", newPosition.col);
+        require(aliceNewPosition.row == row - 1 && aliceNewPosition.col == col, "Alice should have moved down up square");
 
-        require(newPosition.row == row - 1 && newPosition.col == col, "Should have moved up one row in the same col");
+        vm.stopPrank();
+
+        vm.startPrank(Bob);
+
+        // Case 2: Go left
+        (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
+
+        SafariBang.Position memory bobNewPosition = safariBang.move(bobAnimalId, SafariBangStorage.Direction.Left);
+
+        console.log("Bob New Row: ", bobNewPosition.row);
+        console.log("Bob New Col: ", bobNewPosition.col);
+
+        require(bobNewPosition.row == bobRow && bobNewPosition.col == bobCol - 1, "Bob should have moved left 1 square");
+
+        vm.stopPrank();
+
+        // Case 3: Go Right
+        vm.startPrank(Charlie);
+        (uint charlieAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
+
+        SafariBang.Position memory charlieNewPosition = safariBang.move(charlieAnimalId, SafariBangStorage.Direction.Right);
+        
+        require(charlieNewPosition.row == charlieRow && charlieNewPosition.col == charlieCol + 1, "Charlie should have moved right 1 square");
+        vm.stopPrank();
+
+        // Case 4: Go Down
+        
+
+        // Case 5: Out of Moves
+
+        // Case 6: Wrap around the map
+
+        
 
         vm.stopPrank();
     }
