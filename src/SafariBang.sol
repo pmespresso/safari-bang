@@ -156,7 +156,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             require(safariMap[currentPosition.row + 1][currentPosition.col] == 0, "can only use move on empty square");
 
             uint8 newRow = 
-                currentPosition.row + 1 >= NUM_ROWS 
+                currentPosition.row + 1 <= NUM_ROWS 
                 ? currentPosition.row + 1
                 : 0;
             

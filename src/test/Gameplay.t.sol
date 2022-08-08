@@ -18,6 +18,7 @@ contract GameplayTest is Test {
     address Alice = address(1);
     address Bob = address(2);
     address Charlie = address(3);
+    address Daisy = address(4);
 
     uint64 subId;
     uint96 constant FUND_AMOUNT = 1 * 10**18;
@@ -44,12 +45,14 @@ contract GameplayTest is Test {
         vm.deal(Alice, 100 ether);
         vm.deal(Bob, 100 ether);
         vm.deal(Charlie, 100 ether);
+        vm.deal(Daisy, 100 ether);
 
         safariBang.mintTo{value: 0.08 ether}(Alice);
         safariBang.mintTo{value: 0.08 ether}(Alice);
         safariBang.mintTo{value: 0.08 ether}(Alice);
         safariBang.mintTo{value: 0.08 ether}(Bob);
         safariBang.mintTo{value: 0.08 ether}(Charlie);
+        safariBang.mintTo{value: 0.08 ether}(Daisy);
     }
 
     /**
@@ -99,13 +102,18 @@ contract GameplayTest is Test {
         vm.stopPrank();
 
         // Case 4: Go Down
-        
+        vm.startPrank(Daisy);
+        (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
 
+        SafariBang.Position memory daisyNewPosition = safariBang.move(daisyAnimalId, SafariBangStorage.Direction.Down);
+        
+        require(daisyNewPosition.row == daisyRow + 1 && daisyNewPosition.col == daisyCol, "Daisy should have moved down 1 square");
         // Case 5: Out of Moves
+        vm.expectRevert(bytes("Out of moves."));
+        safariBang.move(daisyAnimalId, SafariBangStorage.Direction.Down);
 
         // Case 6: Wrap around the map
 
-        
 
         vm.stopPrank();
     }
