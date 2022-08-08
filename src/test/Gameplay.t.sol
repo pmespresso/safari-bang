@@ -109,7 +109,7 @@ contract GameplayTest is Test {
         
         require(daisyNewPosition.row == daisyRow + 1 && daisyNewPosition.col == daisyCol, "Daisy should have moved down 1 square");
         // Case 5: Out of Moves
-        vm.expectRevert(bytes("Out of moves."));
+        vm.expectRevert(bytes("You are out of moves"));
         safariBang.move(daisyAnimalId, SafariBangStorage.Direction.Down);
 
         // Case 6: Wrap around the map

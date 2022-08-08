@@ -104,6 +104,7 @@ contract SafariBangStorage {
     mapping (address => Position) public playerToPosition;
     mapping (uint256 => Animal) public idToAnimal;
     mapping (address => Animal[]) internal quiver;
+    mapping (address => uint8) public movesRemaining; // Maybe you can get powerups for more moves or something.
 
     Specie[20] public species = [
         Specie.ZEBRAT, // Zebra with a bratty attitude

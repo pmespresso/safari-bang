@@ -55,6 +55,16 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function createAnimal(address to) public returns (uint newGuyId) {
         uint256 currId = ++currentTokenId;
 
+        // if you mint multiple you get more turns
+        // safari gets as many moves as there are animals 
+        if (movesRemaining[to] > 0) {
+            movesRemaining[to] += 1;
+        } else {
+            movesRemaining[to] = 1;
+        }
+
+        // console.log("Create animal for ", to, " with moves remaining: ", movesRemaining[to]);
+
         // console.log("Minting => ", currId);
 
         if (currId > TOTAL_SUPPLY) {
@@ -133,7 +143,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function move(uint256 id, Direction direction) external returns (Position memory newPosition) {
         Position memory currentPosition = playerToPosition[msg.sender];
 
+        console.log("Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
+
         require(ownerOf(currentPosition.animalId) == msg.sender, "Only owner can move piece");
+        require(movesRemaining[msg.sender] > 0, "You are out of moves");
+
+        movesRemaining[msg.sender] -= 1;
 
         if (direction == Direction.Up) {
             require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
@@ -211,7 +226,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     /**
         @dev Fight the animal on the same square as you're trying to move to.
         
-
         If succeed, take the square and the animal goes into your quiver. 
         If fail, you lose the animal and you're forced to use the next animal in your quiver, or mint a new one if you don't have one, or wait till the next round if there are no more animals to mint.
      */
