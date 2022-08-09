@@ -72,7 +72,7 @@ contract GameplayTest is Test {
         // Case 1: Go Up
         vm.assume(safariBang.safariMap(row - 1, col) == 0);
 
-        SafariBang.Position memory aliceNewPosition = safariBang.move(animalId, SafariBangStorage.Direction.Up);
+        SafariBang.Position memory aliceNewPosition = safariBang.move(SafariBangStorage.Direction.Up);
 
         require(aliceNewPosition.row == row - 1 && aliceNewPosition.col == col, "Alice should have moved down up square");
 
@@ -83,7 +83,7 @@ contract GameplayTest is Test {
         // Case 2: Go left
         (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
 
-        SafariBang.Position memory bobNewPosition = safariBang.move(bobAnimalId, SafariBangStorage.Direction.Left);
+        SafariBang.Position memory bobNewPosition = safariBang.move(SafariBangStorage.Direction.Left);
 
         console.log("Bob New Row: ", bobNewPosition.row);
         console.log("Bob New Col: ", bobNewPosition.col);
@@ -96,7 +96,7 @@ contract GameplayTest is Test {
         vm.startPrank(Charlie);
         (uint charlieAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
 
-        SafariBang.Position memory charlieNewPosition = safariBang.move(charlieAnimalId, SafariBangStorage.Direction.Right);
+        SafariBang.Position memory charlieNewPosition = safariBang.move(SafariBangStorage.Direction.Right);
         
         require(charlieNewPosition.row == charlieRow && charlieNewPosition.col == charlieCol + 1, "Charlie should have moved right 1 square");
         vm.stopPrank();
@@ -105,16 +105,77 @@ contract GameplayTest is Test {
         vm.startPrank(Daisy);
         (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
 
-        SafariBang.Position memory daisyNewPosition = safariBang.move(daisyAnimalId, SafariBangStorage.Direction.Down);
+        SafariBang.Position memory daisyNewPosition = safariBang.move(SafariBangStorage.Direction.Down);
         
         require(daisyNewPosition.row == daisyRow + 1 && daisyNewPosition.col == daisyCol, "Daisy should have moved down 1 square");
         // Case 5: Out of Moves
         vm.expectRevert(bytes("You are out of moves"));
-        safariBang.move(daisyAnimalId, SafariBangStorage.Direction.Down);
+        safariBang.move(SafariBangStorage.Direction.Down);
 
         // Case 6: Wrap around the map
 
 
         vm.stopPrank();
+    }
+
+
+    function testFuck() public {
+        vm.startPrank(Alice);
+
+        (uint aliceAnimalId, uint8 aliceRow, uint8 aliceCol) = safariBang.playerToPosition(Alice);
+        (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
+        (SafariBang.AnimalType aliceAnimalType, 
+            SafariBang.Specie aliceAnimalSpecies,
+            uint256 _aliceAnimalId, 
+            uint256 aliceAnimalSize,
+            uint256 aliceAnimalStrength,
+            uint256 aliceAnimalSpeed,
+            uint256 aliceAnimalFertility,
+            uint256 aliceAnimalAnxiety,
+            uint256 aliceAnimalAggression,
+            uint256 aliceAnimalLibido,
+            bool aliceAnimalGender,
+            SafariBang.Position memory alicePosition,
+            address aliceOwner) = safariBang.idToAnimal(aliceAnimalId);
+        (SafariBang.AnimalType bobAnimalType, 
+            SafariBang.Specie bobAnimalSpecies,
+            uint256 _bobAnimalId, 
+            uint256 bobAnimalSize,
+            uint256 bobAnimalStrength,
+            uint256 bobAnimalSpeed,
+            uint256 bobAnimalFertility,
+            uint256 bobAnimalAnxiety,
+            uint256 bobAnimalAggression,
+            uint256 bobAnimalLibido,
+            bool bobAnimalGender,
+            SafariBang.Position memory bobPosition,
+            address bobOwner) = safariBang.idToAnimal(bobAnimalId);
+
+        // put bob next to alice
+        safariBang.godModePlacement(Bob, bobAnimalId, alicePosition.row - 1, alicePosition.col);
+
+        console.log("God Placement: ", bobPosition.row, bobPosition.col);
+
+        // give Alice's animal insane libido and Bob's animal insane fertility
+        aliceAnimalLibido = 100;
+        bobAnimalFertility = 100;
+        safariBang.godModeAttributes(
+            aliceAnimalId,
+            aliceAnimalFertility,
+            aliceAnimalLibido,
+            aliceAnimalGender
+        );
+        safariBang.godModeAttributes(
+            bobAnimalId,
+            bobAnimalFertility,
+            bobAnimalLibido,
+            bobAnimalGender);
+
+        console.log("God Attributes Alice: ", aliceAnimalLibido, aliceAnimalFertility);
+        console.log("God Attributes Bob: ", bobAnimalLibido, bobAnimalFertility);
+
+        SafariBangStorage.Position memory newAlicePosition = safariBang.fuck(SafariBangStorage.Direction.Down);
+
+        console.log("Alice new position: ", newAlicePosition.row, newAlicePosition.col);
     }
 }

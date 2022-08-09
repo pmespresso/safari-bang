@@ -140,7 +140,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     @dev A animal can move to an empty square, but it's a pussy move. You can only move one square at a time. This is only for moving to empty squares. Otherwise must fight,  or fuck
     @param direction up, down, left, or right.
     */
-    function move(uint256 id, Direction direction) external returns (Position memory newPosition) {
+    function move(Direction direction) public returns (Position memory newPosition) {
         Position memory currentPosition = playerToPosition[msg.sender];
 
         console.log("Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
@@ -156,15 +156,15 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row - 1 : NUM_ROWS;
 
             Position memory newPosition = Position({
-                animalId: id,
+                animalId: currentPosition.animalId,
                 row: newRow,
                 col: currentPosition.col
             });
 
-            idToPosition[id] = newPosition;
+            idToPosition[currentPosition.animalId] = newPosition;
             playerToPosition[msg.sender] = newPosition;
             safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[newRow][currentPosition.col] = id;
+            safariMap[newRow][currentPosition.col] = currentPosition.animalId;
 
             return newPosition;
         } else if (direction == Direction.Down) {
@@ -176,15 +176,15 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
                 : 0;
             
             Position memory newPosition = Position({
-                animalId: id,
+                animalId: currentPosition.animalId,
                 row: newRow,
                 col: currentPosition.col
             });
 
-            idToPosition[id] = newPosition;
+            idToPosition[currentPosition.animalId] = newPosition;
             playerToPosition[msg.sender] = newPosition;
             safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[newRow][currentPosition.col] = id;
+            safariMap[newRow][currentPosition.col] = currentPosition.animalId;
 
             return newPosition;
         } else if (direction == Direction.Left) {
@@ -198,10 +198,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             Position memory newPosition = currentPosition;
             newPosition.col = newCol;
 
-            idToPosition[id] = newPosition;
+            idToPosition[currentPosition.animalId] = newPosition;
             playerToPosition[msg.sender] = newPosition;
             safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[currentPosition.row][newCol] = id;
+            safariMap[currentPosition.row][newCol] = currentPosition.animalId;
 
             return newPosition;
         } else if (direction == Direction.Right) {
@@ -214,13 +214,43 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             Position memory newPosition = currentPosition;
             newPosition.col = newCol;
 
-            idToPosition[id] = newPosition;
+            idToPosition[currentPosition.animalId] = newPosition;
             playerToPosition[msg.sender] = newPosition;
             safariMap[currentPosition.row][currentPosition.col] = 0;
-            safariMap[currentPosition.row][newCol] = id;
+            safariMap[currentPosition.row][newCol] = currentPosition.animalId;
 
             return newPosition;
         }
+    }
+
+    /**
+        @dev Dev only! place animal anywhere
+     */
+    function godModePlacement(address who, uint id, uint8 row, uint8 col) public {
+        Position memory newPosition = Position({
+            animalId: id,
+            row: row,
+            col: col
+        });
+
+        idToPosition[id] = newPosition;
+        playerToPosition[who] = newPosition;
+        safariMap[row][col] = id;
+    }
+
+    function godModeAttributes(
+            uint id,
+            uint256 fertility,
+            uint256 libido,
+            bool gender) public {
+        
+        Animal memory animal = idToAnimal[id];
+
+        animal.fertility = fertility;
+        animal.libido = libido;
+        animal.gender = gender;
+
+        idToAnimal[id] = animal;
     }
 
     /**
@@ -234,12 +264,67 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     /**
         @dev Fuck an animal and maybe you can conceive (mint) a baby animal to your quiver.
      */
-    function fuck() public payable returns (bool) {}
+    function fuck(Direction direction) external returns (Position memory newPosition) {
+        // load player's animal
+        Animal[] memory fuckerQuiver = getQuiver(msg.sender);
+        Animal memory fucker = fuckerQuiver[0];
+        Position memory challengerPos = fucker.position;
+        uint8 rowToCheck = direction == Direction.Up ? challengerPos.row - 1 : direction == Direction.Down ? challengerPos.row + 1 : challengerPos.row;
+        uint8 colToCheck = direction == Direction.Left ? challengerPos.col - 1 : direction == Direction.Right ? challengerPos.col + 1 : challengerPos.col;
+
+        console.log("Row to check: ", rowToCheck);
+        console.log("Col to check: ", colToCheck);
+
+        // check there is a wild animal there
+        require(!_checkIfEmptyCell(rowToCheck, colToCheck), "Cannot try to fuck on empty square");
+        
+        uint256 fuckeeId = safariMap[rowToCheck][colToCheck];
+        Animal memory fuckee = idToAnimal[fuckeeId];
+
+        // check is heterosexual
+        require(fuckee.gender != fucker.gender, "Cannot impregnate same sex animal");
+
+        emit FuckAttempt(fucker.owner, fuckee.owner);
+
+        // VRF gen random number
+        vrfConsumer.requestRandomWords();
+        uint256 requestId = vrfConsumer.s_requestId();
+        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+
+        uint256[] memory randomWords = getWords(requestId);
+
+        // apply multiplier based on libido and fertility
+        uint multiplier = fucker.libido * fuckee.fertility * randomWords[0] / 1e18;
+
+        console.log("muliplier: ", multiplier);
+
+        // sigmoid have baby or no?
+        if (multiplier > 50) {
+            // If success, move animal to fucker's quiver mint new baby and move into the space
+            mintTo(fucker.owner);
+
+            quiver[fucker.owner].push(fuckee);
+            deleteFirstAnimalFromQuiver(fuckee.owner, fuckee.id);
+            Position memory newPosition = move(direction);
+            return newPosition;
+        } else {
+            // If fail, replace from quiver or burn fucker
+            deleteFirstAnimalFromQuiver(fucker.owner, fucker.id);
+            return challengerPos;
+        }
+    }
 
     /**
         @dev Flee an animal and maybe end up in the next square but if the square you land on has an animal on it again, then you have to fight or fuck it.
      */
     function flee() public payable returns (bool) {}
+
+    function _checkIfEmptyCell(uint8 rowToCheck, uint8 colToCheck) internal returns(bool) {
+        if (safariMap[rowToCheck][colToCheck] == 0) {
+            return true;
+        }
+        return false;
+    }
 
     /**
         @dev An Asteroid hits the map every interval of X blocks and we'll reset the game state:
