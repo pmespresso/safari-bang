@@ -113,15 +113,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             aggression: words[0] % 45,
             libido: words[0] % 44, 
             gender: words[0] % 2 == 0 ? true : false,
-            position: position,
             owner: to
         });
 
         // only Animals have quiver, WILD_ANIMALS do not belong in a quiver
         if (wipAnimal.owner != address(this)) {
-            if (quiver[to].length >= 1) {
-                wipAnimal.position = quiver[to][0].position;
-            }
             quiver[to].push(wipAnimal);
         }
 
@@ -234,7 +230,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         });
 
         idToPosition[id] = newPosition;
-        playerToPosition[who] = newPosition;
+        playerToPosition[who] = newPosition; 
         safariMap[row][col] = id;
     }
 
@@ -268,7 +264,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         // load player's animal
         Animal[] memory fuckerQuiver = getQuiver(msg.sender);
         Animal memory fucker = fuckerQuiver[0];
-        Position memory challengerPos = fucker.position;
+        Position memory challengerPos = playerToPosition[msg.sender];
         uint8 rowToCheck = direction == Direction.Up ? challengerPos.row - 1 : direction == Direction.Down ? challengerPos.row + 1 : challengerPos.row;
         uint8 colToCheck = direction == Direction.Left ? challengerPos.col - 1 : direction == Direction.Right ? challengerPos.col + 1 : challengerPos.col;
 
@@ -357,10 +353,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         console.log("quiver[who].length ", quiver[who].length);
         console.log("who == address(this)", who == address(this));
         console.log("quiver[who].length <= 1", quiver[who].length <= 1);
+        Position memory position = idToPosition[id];
+
         // You're out of animals, remove from map and burn
         if (who == address(this) || quiver[who].length <= 1) {
             console.log("Time to wipe and burn: ", id);
-            Position memory position = idToPosition[id];
             console.log("Position of next up", position.row, position.col);
 
             delete idToAnimal[id];
@@ -382,16 +379,15 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             quiver[who].pop();
 
             Animal memory nextUp = quiver[who][0];
-            nextUp.position = deadAnimal.position;
-            console.log("next up new position: ", nextUp.position.row, nextUp.position.col);
-            idToPosition[nextUp.id] = deadAnimal.position;
+            console.log("next up new position: ", position.row, position.col);
+            idToPosition[nextUp.id] = position;
             idToAnimal[nextUp.id] = nextUp;
-            safariMap[nextUp.position.row][nextUp.position.col] = nextUp.id;
+            safariMap[position.row][position.col] = nextUp.id;
                         
             console.log("Next up: ", nextUp.id);
             console.log("New Quiver length: ", quiver[who].length);
 
-            emit AnimalReplacedFromQuiver(nextUp.id, nextUp.position.row, nextUp.position.col);
+            emit AnimalReplacedFromQuiver(nextUp.id, position.row, position.col);
         }
     }
 

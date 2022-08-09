@@ -135,7 +135,6 @@ contract GameplayTest is Test {
             uint256 aliceAnimalAggression,
             uint256 aliceAnimalLibido,
             bool aliceAnimalGender,
-            SafariBang.Position memory alicePosition,
             address aliceOwner) = safariBang.idToAnimal(aliceAnimalId);
         (SafariBang.AnimalType bobAnimalType, 
             SafariBang.Specie bobAnimalSpecies,
@@ -148,13 +147,13 @@ contract GameplayTest is Test {
             uint256 bobAnimalAggression,
             uint256 bobAnimalLibido,
             bool bobAnimalGender,
-            SafariBang.Position memory bobPosition,
             address bobOwner) = safariBang.idToAnimal(bobAnimalId);
 
         // put bob next to alice
-        safariBang.godModePlacement(Bob, bobAnimalId, alicePosition.row - 1, alicePosition.col);
-
-        console.log("God Placement: ", bobPosition.row, bobPosition.col);
+        safariBang.godModePlacement(Bob, bobAnimalId, aliceRow - 1, aliceCol);
+        
+        console.log("Placement of Alice: ", aliceRow, aliceCol);
+        console.log("God Placement of Bob: ", bobRow, bobCol);
 
         // give Alice's animal insane libido and Bob's animal insane fertility
         aliceAnimalLibido = 100;

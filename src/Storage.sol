@@ -98,7 +98,6 @@ contract SafariBangStorage {
         uint256 aggression; // P(choose "fight" | isWildAnimal())
         uint256 libido; // P(choose "fuck" | isWildAnimal())
         bool gender; // animals are male or female
-        Position position;
         address owner;
     }
     
