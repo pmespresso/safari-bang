@@ -266,7 +266,61 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         If succeed, take the square and the animal goes into your quiver. 
         If fail, you lose the animal and you're forced to use the next animal in your quiver, or mint a new one if you don't have one, or wait till the next round if there are no more animals to mint.
      */
-    function fight() public payable returns (bool) {}
+    function fight(Direction direction) external returns (Position memory newPosition) {
+        Animal[] memory challengerQuiver = getQuiver(msg.sender);
+        Animal memory challenger = challengerQuiver[0];
+        Position memory challengerPos = playerToPosition[msg.sender];
+
+        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction);
+        
+        // check there is an animal there
+        // TODO: Check that it is wild
+        require(!_checkIfEmptyCell(rowToCheck, colToCheck), "Cannot try to fight on empty square");
+
+        uint256 theGuyGettingFoughtId = safariMap[rowToCheck][colToCheck];
+        Animal memory theGuyGettingFought = idToAnimal[theGuyGettingFoughtId];
+
+        emit FightAttempt(challenger.owner, theGuyGettingFought.owner);
+
+        // VRF gen random number
+        vrfConsumer.requestRandomWords();
+        uint256 requestId = vrfConsumer.s_requestId();
+        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+
+        uint256[] memory randomWords = getWords(requestId);
+        
+        console.log("randomWords[1]: ", randomWords[1]);
+        console.log("randomWords[1] / 1e18: ", randomWords[1] / 1e70);
+
+        // apply multiplier based on delta of aggression, speed, strength, size
+        uint multiplier = (challenger.aggression - theGuyGettingFought.aggression) * (challenger.speed - theGuyGettingFought.speed) * (challenger.strength - theGuyGettingFought.strength) * (challenger.size - theGuyGettingFought.size) * (randomWords[0] / 1e70);
+
+        console.log("muliplier: ", multiplier);
+
+         if (multiplier > 50) {
+            // If challenger wins the fight, challenger moves into loser's square, loser is burned
+            deleteFirstAnimalFromQuiver(theGuyGettingFought.owner, theGuyGettingFought.id);
+            Position memory newPosition;
+            // if that was their last animal
+            if(_checkIfEmptyCell(rowToCheck, colToCheck)) {
+                console.log("move to: ", rowToCheck, colToCheck);
+                newPosition = move(direction);
+            } else {
+                newPosition = challengerPos;
+                movesRemaining[challenger.owner] -= 1;
+            }
+
+            emit FightSuccess(challenger.owner, theGuyGettingFought.owner);
+            
+            return newPosition;
+        } else {
+            // If lose burn loser, nobody moves
+            deleteFirstAnimalFromQuiver(challenger.owner, challenger.id);
+            movesRemaining[challenger.owner] -= 1;
+            emit FightSuccess(theGuyGettingFought.owner, challenger.owner);
+            return challengerPos;
+        }
+    }
 
     /**
         @dev Fuck an animal and maybe you can conceive (mint) a baby animal to your quiver.
@@ -276,8 +330,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         Animal[] memory fuckerQuiver = getQuiver(msg.sender);
         Animal memory fucker = fuckerQuiver[0];
         Position memory challengerPos = playerToPosition[msg.sender];
-        uint8 rowToCheck = direction == Direction.Up ? challengerPos.row - 1 : direction == Direction.Down ? challengerPos.row + 1 : challengerPos.row;
-        uint8 colToCheck = direction == Direction.Left ? challengerPos.col - 1 : direction == Direction.Right ? challengerPos.col + 1 : challengerPos.col;
+
+        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction);
 
         // check there is a wild animal there
         require(!_checkIfEmptyCell(rowToCheck, colToCheck), "Cannot try to fuck on empty square");
@@ -321,6 +375,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
                 newPosition = challengerPos;
                 movesRemaining[fucker.owner] -= 1;
             }
+
+            emit FuckSuccess(fucker.owner, fuckee.owner);
             
             return newPosition;
         } else {
@@ -335,6 +391,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         @dev Flee an animal and maybe end up in the next square but if the square you land on has an animal on it again, then you have to fight or fuck it.
      */
     function flee() public payable returns (bool) {}
+
+    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction directionToCheck) internal returns (uint8, uint8) {
+        uint8 rowToCheck = direction == Direction.Up ? currentRow - 1 : direction == Direction.Down ? currentRow + 1 : currentRow;
+        uint8 colToCheck = direction == Direction.Left ? currentCol - 1 : direction == Direction.Right ? currentCol + 1 : currentCol;
+
+        return (rowToCheck, colToCheck);
+    }
 
     function _checkIfEmptyCell(uint8 rowToCheck, uint8 colToCheck) internal returns(bool) {
         console.log("checkIfEmptyCell: ", safariMap[rowToCheck][colToCheck]);

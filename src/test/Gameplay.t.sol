@@ -185,9 +185,6 @@ contract GameplayTest is Test {
 
         (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
         
-        // console.log("Placement of Alice: ", aliceRow, aliceCol);
-        // console.log("God Placement of Bob: ", bobRow, bobCol);
-
         // give Alice's animal insane libido and Bob's animal insane fertility, make sure alice is female and bob is male
         aliceAnimalLibido = 100;
         bobAnimalFertility = 100;
@@ -206,8 +203,6 @@ contract GameplayTest is Test {
             bobAnimalGender
         );
 
-        // console.log("God Attributes Alice: ", aliceAnimalLibido, aliceAnimalFertility, aliceAnimalGender);
-        // console.log("God Attributes Bob: ", bobAnimalLibido, bobAnimalFertility, bobAnimalGender);
 
         SafariBangStorage.Position memory newAlicePosition = safariBang.fuck(SafariBangStorage.Direction.Up);
 
@@ -220,5 +215,34 @@ contract GameplayTest is Test {
         require(newAlicePosition.row == bobRow && newAlicePosition.col == bobCol, "Alice should have moved into Bob's old cell.");
         require(safariBang.movesRemaining(Alice) == 3, "Alice should have used 1 move to do this whole thing");
         require(safariBang.balanceOf(Alice) == aliceBalanceBefore + 1, "Alice should have a brand new baby animal in her quiver.");
+    }
+
+       /**
+        @dev Fight as a defense mechanism
+                Pseudocode below:
+
+            | 0 | 0 | B | 0 |
+            | 0 | 0 | A | 0 |
+            | C | D | 0 | 0 |
+            
+            A.Quiver = [1, 2, 3]
+            B.Quiver = [4]
+            C.Quiver = [5]
+            D.Quiver = [6]
+
+            C.Fight -> D
+            burn(D.Quiver[0]) // if C wins fight
+
+            | 0 | 0 | A | 0 |
+            | 0 | 0 | 0 | 0 |
+            | 0 | C | 0 | 0 |
+
+            C.Quiver = [5]
+            D.Quiver = []
+    */
+    function testFight() public {
+        vm.prank(Charlie);
+
+        
     }
 }
