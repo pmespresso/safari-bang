@@ -60,7 +60,6 @@ contract SafariBangTest is Test {
             uint256 aggression,
             uint256 libido,
             bool gender,
-            SafariBang.Position memory position,
             address owner) = safariBang.idToAnimal(new_guy_id);
 
         console.log("size: ", size);
@@ -71,10 +70,6 @@ contract SafariBangTest is Test {
         console.log("aggression: ", aggression);
         console.log("libido: ", libido);
         console.log("gender: ", gender);
-        console.log("position.row", position.row);
-        console.log("position.col", position.col);
-        assert(position.row >= 0 && position.row <= 128);
-        assert(position.col >= 0 && position.col <= 128);
     }
 
     function testMapGenesis() public {
@@ -105,20 +100,17 @@ contract SafariBangTest is Test {
             uint256 aggression,
             uint256 libido,
             bool gender,
-            SafariBang.Position memory position,
             address owner) = safariBang.idToAnimal(69);
         
         assertEq(id, 69);
         assertEq(owner, address(safariBang));
 
-        // CASE 3: Animal by safariMap[][]
-        uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(position.row, position.col);
-        assertEq(idOfMyBoyAtRow0Col69, 69);
-
         // CASE 4: idToPosition
         (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(69);
-        assertEq(position.row, row);
-        assertEq(position.col, col);
+
+        // CASE 3: Animal by safariMap[][]
+        uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(row, col);
+        assertEq(idOfMyBoyAtRow0Col69, 69);
     }
 
     function testQuiver() public {

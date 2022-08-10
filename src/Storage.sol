@@ -10,7 +10,10 @@ import "./VRFConsumerV2.sol";
 
 contract SafariBangStorage {
     using Strings for uint256;
-
+    
+    event MoveToEmptySquare(address whoMoved, uint8 newRow, uint8 newCol);
+    event FuckAttempt(address fucker, address fuckee);
+    event FuckSuccess(address fucker, address newlyMinted);
     event AnimalReplacedFromQuiver(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
@@ -95,7 +98,6 @@ contract SafariBangStorage {
         uint256 aggression; // P(choose "fight" | isWildAnimal())
         uint256 libido; // P(choose "fuck" | isWildAnimal())
         bool gender; // animals are male or female
-        Position position;
         address owner;
     }
     
@@ -103,7 +105,7 @@ contract SafariBangStorage {
     mapping (uint256 => Position) public idToPosition;
     mapping (address => Position) public playerToPosition;
     mapping (uint256 => Animal) public idToAnimal;
-    mapping (address => Animal[]) internal quiver;
+    mapping (address => Animal[]) public quiver;
     mapping (address => uint8) public movesRemaining; // Maybe you can get powerups for more moves or something.
 
     Specie[20] public species = [
