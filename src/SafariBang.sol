@@ -139,7 +139,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function move(Direction direction) public returns (Position memory newPosition) {
         Position memory currentPosition = playerToPosition[msg.sender];
 
-        console.log("Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
+        console.log("Before move(): Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
 
         require(ownerOf(currentPosition.animalId) == msg.sender, "Only owner can move piece");
         require(movesRemaining[msg.sender] > 0, "You are out of moves");
@@ -217,6 +217,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
             return newPosition;
         }
+        console.log("After move(): Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
     }
 
     /**
@@ -241,12 +242,22 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             bool gender) public {
         
         Animal memory animal = idToAnimal[id];
+        Animal memory newAnimal = Animal({
+            animalType: animal.animalType,
+            species: animal.species,
+            id: animal.id,
+            size: animal.size,
+            strength: animal.strength,
+            speed: animal.speed,
+            fertility: fertility,
+            anxiety: animal.anxiety,
+            aggression: animal.aggression,
+            libido: libido, 
+            gender: gender,
+            owner: animal.owner
+        });
 
-        animal.fertility = fertility;
-        animal.libido = libido;
-        animal.gender = gender;
-
-        idToAnimal[id] = animal;
+        idToAnimal[id] = newAnimal;
     }
 
     /**
@@ -268,17 +279,14 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         uint8 rowToCheck = direction == Direction.Up ? challengerPos.row - 1 : direction == Direction.Down ? challengerPos.row + 1 : challengerPos.row;
         uint8 colToCheck = direction == Direction.Left ? challengerPos.col - 1 : direction == Direction.Right ? challengerPos.col + 1 : challengerPos.col;
 
-        console.log("Row to check: ", rowToCheck);
-        console.log("Col to check: ", colToCheck);
-
         // check there is a wild animal there
         require(!_checkIfEmptyCell(rowToCheck, colToCheck), "Cannot try to fuck on empty square");
         
         uint256 fuckeeId = safariMap[rowToCheck][colToCheck];
         Animal memory fuckee = idToAnimal[fuckeeId];
 
-        // check is heterosexual
-        require(fuckee.gender != fucker.gender, "Cannot impregnate same sex animal");
+        // TODO: check is heterosexual
+        // require(fuckee.gender != fucker.gender, "Cannot impregnate same sex animal");
 
         emit FuckAttempt(fucker.owner, fuckee.owner);
 
@@ -289,23 +297,36 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
         uint256[] memory randomWords = getWords(requestId);
 
+        console.log("randomWords[0]: ", randomWords[0]);
+        console.log("randomWords[0] / 1e18: ", randomWords[0] / 1e70);
+
         // apply multiplier based on libido and fertility
-        uint multiplier = fucker.libido * fuckee.fertility * randomWords[0] / 1e18;
+        uint multiplier = fucker.libido * fuckee.fertility * (randomWords[0] / 1e70);
 
         console.log("muliplier: ", multiplier);
 
-        // sigmoid have baby or no?
+        // TODO: sigmoid have baby or no?
         if (multiplier > 50) {
             // If success, move animal to fucker's quiver mint new baby and move into the space
-            mintTo(fucker.owner);
+            giveBirth(fucker.owner);
 
             quiver[fucker.owner].push(fuckee);
             deleteFirstAnimalFromQuiver(fuckee.owner, fuckee.id);
-            Position memory newPosition = move(direction);
+            Position memory newPosition;
+            // if that was their last animal
+            if(_checkIfEmptyCell(rowToCheck, colToCheck)) {
+                console.log("move to: ", rowToCheck, colToCheck);
+                newPosition = move(direction);
+            } else {
+                newPosition = challengerPos;
+                movesRemaining[fucker.owner] -= 1;
+            }
+            
             return newPosition;
         } else {
-            // If fail, replace from quiver or burn fucker
+            // If fail, replace from quiver
             deleteFirstAnimalFromQuiver(fucker.owner, fucker.id);
+            movesRemaining[fucker.owner] -= 1;
             return challengerPos;
         }
     }
@@ -316,6 +337,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function flee() public payable returns (bool) {}
 
     function _checkIfEmptyCell(uint8 rowToCheck, uint8 colToCheck) internal returns(bool) {
+        console.log("checkIfEmptyCell: ", safariMap[rowToCheck][colToCheck]);
         if (safariMap[rowToCheck][colToCheck] == 0) {
             return true;
         }
@@ -351,27 +373,28 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
     function deleteFirstAnimalFromQuiver(address who, uint id) internal {
         console.log("quiver[who].length ", quiver[who].length);
-        console.log("who == address(this)", who == address(this));
-        console.log("quiver[who].length <= 1", quiver[who].length <= 1);
         Position memory position = idToPosition[id];
 
         // You're out of animals, remove from map and burn
         if (who == address(this) || quiver[who].length <= 1) {
             console.log("Time to wipe and burn: ", id);
-            console.log("Position of next up", position.row, position.col);
+            console.log("Position of burnable", position.row, position.col);
 
             delete idToAnimal[id];
             delete idToPosition[id];
+            delete safariMap[position.row][position.col];
+            delete playerToPosition[who];
             delete quiver[who];
+            delete movesRemaining[who];
             // delete ownerOf[id]; this is what _burn does
             
             console.log("Burning: ", id);
             _burn(id);
             emit AnimalBurnedAndRemovedFromCell(id, position.row, position.col);
         } else {
-            console.log("Every Quiver Item: ", quiver[who][0].id, quiver[who][1].id, quiver[who][2].id);
             Animal memory deadAnimal = quiver[who][0];
             
+            console.log("Burning: ", deadAnimal.id);
             _burn(deadAnimal.id);
 
             // delete first animal in quiver, replace with last one
@@ -389,6 +412,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
             emit AnimalReplacedFromQuiver(nextUp.id, position.row, position.col);
         }
+    }
+
+    function giveBirth(address to) internal returns (uint256) {
+        createAnimal(to);
+
+        return currentTokenId + 1;
     }
 
     /**
