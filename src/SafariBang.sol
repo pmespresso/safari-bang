@@ -268,8 +268,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
      */
     function fight(Direction direction) external returns (Position memory newPosition) {
         Animal[] memory challengerQuiver = getQuiver(msg.sender);
+        console.log("challenger quiver legnth: ", challengerQuiver.length);
         Animal memory challenger = challengerQuiver[0];
+        console.log("Challenger: ", challenger.id);
         Position memory challengerPos = playerToPosition[msg.sender];
+        console.log("Challenger Pos: ", challengerPos.row, challengerPos.col);
 
         (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction);
         
@@ -283,11 +286,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         emit FightAttempt(challenger.owner, theGuyGettingFought.owner);
 
         // VRF gen random number
-        vrfConsumer.requestRandomWords();
-        uint256 requestId = vrfConsumer.s_requestId();
-        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
-
-        uint256[] memory randomWords = getWords(requestId);
+        uint256[] memory randomWords = _getNewRandomWords();
         
         console.log("randomWords[1]: ", randomWords[1]);
         console.log("randomWords[1] / 1e18: ", randomWords[1] / 1e70);
@@ -298,25 +297,32 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         console.log("muliplier: ", multiplier);
 
          if (multiplier > 50) {
+            console.log("Challenger Won");
             // If challenger wins the fight, challenger moves into loser's square, loser is burned
             deleteFirstAnimalFromQuiver(theGuyGettingFought.owner, theGuyGettingFought.id);
             Position memory newPosition;
-            // if that was their last animal
+            console.log("movesRemaining[challenger.owner]: ", movesRemaining[challenger.owner]);
+
+            // Challenger won and moves into the space of the defender
             if(_checkIfEmptyCell(rowToCheck, colToCheck)) {
                 console.log("move to: ", rowToCheck, colToCheck);
                 newPosition = move(direction);
             } else {
+            // Challenger lost and he either was deleted or remains with next animal from quiver on deck
                 newPosition = challengerPos;
-                movesRemaining[challenger.owner] -= 1;
+                if (movesRemaining[challenger.owner] != 0) {
+                    movesRemaining[challenger.owner] -= 1;
+                }
             }
 
             emit FightSuccess(challenger.owner, theGuyGettingFought.owner);
             
             return newPosition;
         } else {
+            console.log("Challenger Lost");
             // If lose burn loser, nobody moves
             deleteFirstAnimalFromQuiver(challenger.owner, challenger.id);
-            movesRemaining[challenger.owner] -= 1;
+            console.log("movesRemaining[challenger.owner]: ", movesRemaining[challenger.owner]);
             emit FightSuccess(theGuyGettingFought.owner, challenger.owner);
             return challengerPos;
         }
@@ -345,11 +351,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         emit FuckAttempt(fucker.owner, fuckee.owner);
 
         // VRF gen random number
-        vrfConsumer.requestRandomWords();
-        uint256 requestId = vrfConsumer.s_requestId();
-        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
-
-        uint256[] memory randomWords = getWords(requestId);
+        uint256[] memory randomWords = _getNewRandomWords();
 
         console.log("randomWords[0]: ", randomWords[0]);
         console.log("randomWords[0] / 1e18: ", randomWords[0] / 1e70);
@@ -389,10 +391,94 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
     /**
         @dev Flee an animal and maybe end up in the next square but if the square you land on has an animal on it again, then you have to fight or fuck it.
-     */
-    function flee() public payable returns (bool) {}
 
-    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction directionToCheck) internal returns (uint8, uint8) {
+        It will pick a random direction and move you 3 squares over any obstacles. If you land on an animal then you need to fuck or fight it.
+
+        You need to be next to at least one animal to flee. Otherwise just move().
+     */
+    function flee() public payable returns (bool) {
+        Position memory fleerPos = playerToPosition[msg.sender];
+        // adjacent animals
+        Position[4] memory adjacents = _getAdjacents(fleerPos);
+
+        console.log('Adjacents: ', adjacents.length);
+
+        require(adjacents.length > 0, "Need at least one adjacent to flee.");
+        
+        // pick a random direction
+        // VRF gen random number
+        uint256[] memory randomWords = _getNewRandomWords();
+        uint256 directionIndex = randomWords[2] % 4;
+        Direction direction;
+        if (directionIndex == 0) {
+            direction = Direction.Up;
+        } else if (directionIndex == 1) {
+            direction = Direction.Down;
+        } else if (directionIndex == 2) {
+            direction = Direction.Left;
+        } else {
+            direction = Direction.Right;
+        }
+
+        // move them 3 squares
+
+        // if land on empty, stop
+
+        // if land on animal, fight
+    }
+
+    function _getNewRandomWords() internal returns (uint256[] memory words) {
+        vrfConsumer.requestRandomWords();
+        uint256 requestId = vrfConsumer.s_requestId();
+        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+
+        return getWords(requestId);
+    }
+
+    function _getAdjacents(Position memory position) internal returns (Position[4] memory adjacents) {
+        uint top = safariMap[position.row - 1][position.col];
+        uint down = safariMap[position.row + 1][position.col ];
+        uint left = safariMap[position.row][position.col - 1];
+        uint right = safariMap[position.row][position.col + 1];
+
+        Position[4] memory result;
+
+        if (top != 0) {
+            result[0] = Position({
+                animalId: top,
+                row: position.row - 1,
+                col: position.col
+            });
+        }
+
+        if (down != 0) {
+            result[1] = Position({
+                animalId: down,
+                row: position.row + 1,
+                col: position.col
+            });
+        }
+
+        if (left != 0) {
+            result[2] = Position({
+                animalId: left,
+                row: position.row,
+                col: position.col - 1
+            });
+        }
+
+        if (right != 0) {
+            result[3] = Position({
+                animalId: right,
+                row: position.row,
+                col: position.col + 1
+            });
+        }
+
+        return result;
+    }
+
+    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction direction) internal returns (uint8, uint8) {
         uint8 rowToCheck = direction == Direction.Up ? currentRow - 1 : direction == Direction.Down ? currentRow + 1 : currentRow;
         uint8 colToCheck = direction == Direction.Left ? currentCol - 1 : direction == Direction.Right ? currentCol + 1 : currentCol;
 
