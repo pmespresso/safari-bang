@@ -135,8 +135,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     /** 
     @dev A animal can move to an empty square, but it's a pussy move. You can only move one square at a time. This is only for moving to empty squares. Otherwise must fight,  or fuck
     @param direction up, down, left, or right.
+    @param howManySquares usually 1, only flee() will set it to 3
     */
-    function move(Direction direction) public returns (Position memory newPosition) {
+    function move(Direction direction, uint8 howManySquares) public returns (Position memory newPosition) {
         Position memory currentPosition = playerToPosition[msg.sender];
 
         console.log("Before move(): Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
@@ -147,9 +148,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         movesRemaining[msg.sender] -= 1;
 
         if (direction == Direction.Up) {
-            require(safariMap[currentPosition.row - 1][currentPosition.col] == 0, "can only use move on empty square");
+            require(safariMap[currentPosition.row - howManySquares][currentPosition.col] == 0, "can only use move on empty square");
             
-            uint8 newRow = currentPosition.row - 1 >= 0 ? currentPosition.row - 1 : NUM_ROWS;
+            uint8 newRow = currentPosition.row - howManySquares >= 0 ? currentPosition.row - howManySquares : NUM_ROWS;
 
             Position memory newPosition = Position({
                 animalId: currentPosition.animalId,
@@ -167,8 +168,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             require(safariMap[currentPosition.row + 1][currentPosition.col] == 0, "can only use move on empty square");
 
             uint8 newRow = 
-                currentPosition.row + 1 <= NUM_ROWS 
-                ? currentPosition.row + 1
+                currentPosition.row + howManySquares <= NUM_ROWS 
+                ? currentPosition.row + howManySquares
                 : 0;
             
             Position memory newPosition = Position({
@@ -184,11 +185,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
             return newPosition;
         } else if (direction == Direction.Left) {
-            require(safariMap[currentPosition.row][currentPosition.col - 1] == 0, "can only use move on empty square");
+            require(safariMap[currentPosition.row][currentPosition.col - howManySquares] == 0, "can only use move on empty square");
             
             uint8 newCol = 
-                currentPosition.col - 1 >= 0
-                ? currentPosition.col - 1
+                currentPosition.col - howManySquares >= 0
+                ? currentPosition.col - howManySquares
                 : NUM_COLS;
             
             Position memory newPosition = currentPosition;
@@ -201,10 +202,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
             return newPosition;
         } else if (direction == Direction.Right) {
-            require(safariMap[currentPosition.row][currentPosition.col + 1] == 0, "can only use move on empty square");
+            require(safariMap[currentPosition.row][currentPosition.col + howManySquares] == 0, "can only use move on empty square");
             uint8 newCol = 
-                currentPosition.col + 1 <= NUM_COLS 
-                ? currentPosition.col + 1
+                currentPosition.col + howManySquares <= NUM_COLS 
+                ? currentPosition.col + howManySquares
                 : 0;
             
             Position memory newPosition = currentPosition;
@@ -274,7 +275,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         Position memory challengerPos = playerToPosition[msg.sender];
         console.log("Challenger Pos: ", challengerPos.row, challengerPos.col);
 
-        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction);
+        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction, 1);
         
         // check there is an animal there
         // TODO: Check that it is wild
@@ -306,7 +307,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             // Challenger won and moves into the space of the defender
             if(_checkIfEmptyCell(rowToCheck, colToCheck)) {
                 console.log("move to: ", rowToCheck, colToCheck);
-                newPosition = move(direction);
+                newPosition = move(direction, 1);
             } else {
             // Challenger lost and he either was deleted or remains with next animal from quiver on deck
                 newPosition = challengerPos;
@@ -337,7 +338,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         Animal memory fucker = fuckerQuiver[0];
         Position memory challengerPos = playerToPosition[msg.sender];
 
-        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction);
+        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction, 1);
 
         // check there is a wild animal there
         require(!_checkIfEmptyCell(rowToCheck, colToCheck), "Cannot try to fuck on empty square");
@@ -372,7 +373,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             // if that was their last animal
             if(_checkIfEmptyCell(rowToCheck, colToCheck)) {
                 console.log("move to: ", rowToCheck, colToCheck);
-                newPosition = move(direction);
+                newPosition = move(direction, 1);
             } else {
                 newPosition = challengerPos;
                 movesRemaining[fucker.owner] -= 1;
@@ -396,7 +397,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
         You need to be next to at least one animal to flee. Otherwise just move().
      */
-    function flee() public payable returns (bool) {
+    function flee() public payable returns (Position memory newPosition) {
         Position memory fleerPos = playerToPosition[msg.sender];
         // adjacent animals
         Position[4] memory adjacents = _getAdjacents(fleerPos);
@@ -420,11 +421,19 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             direction = Direction.Right;
         }
 
+        console.log("Direction: ", uint(direction));
         // move them 3 squares
+        (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(fleerPos.row, fleerPos.col, direction, 3);
 
-        // if land on empty, stop
-
-        // if land on animal, fight
+        if (_checkIfEmptyCell(rowToCheck, colToCheck)) {
+            // if land on empty, stop
+            Position memory newPosition = move(direction, 3);
+            return newPosition;
+        } else {
+            // if land on animal, flee fails, player remains on their current cell.
+            movesRemaining[msg.sender] -= 1;
+            return fleerPos;
+        }
     }
 
     function _getNewRandomWords() internal returns (uint256[] memory words) {
@@ -478,9 +487,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         return result;
     }
 
-    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction direction) internal returns (uint8, uint8) {
-        uint8 rowToCheck = direction == Direction.Up ? currentRow - 1 : direction == Direction.Down ? currentRow + 1 : currentRow;
-        uint8 colToCheck = direction == Direction.Left ? currentCol - 1 : direction == Direction.Right ? currentCol + 1 : currentCol;
+    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction direction, uint8 howManySquares) internal returns (uint8, uint8) {
+        uint8 rowToCheck = direction == Direction.Up ? currentRow - howManySquares : direction == Direction.Down ? currentRow + howManySquares : currentRow;
+        uint8 colToCheck = direction == Direction.Left ? currentCol - howManySquares : direction == Direction.Right ? currentCol + howManySquares : currentCol;
 
         return (rowToCheck, colToCheck);
     }

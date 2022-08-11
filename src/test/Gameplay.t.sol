@@ -77,7 +77,7 @@ contract GameplayTest is Test {
         // Case 1: Go Up
         vm.assume(safariBang.safariMap(row - 1, col) == 0);
 
-        SafariBang.Position memory aliceNewPosition = safariBang.move(SafariBangStorage.Direction.Up);
+        SafariBang.Position memory aliceNewPosition = safariBang.move(SafariBangStorage.Direction.Up, 1);
 
         require(aliceNewPosition.row == row - 1 && aliceNewPosition.col == col, "Alice should have moved down up square");
 
@@ -88,7 +88,7 @@ contract GameplayTest is Test {
         // Case 2: Go left
         (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
 
-        SafariBang.Position memory bobNewPosition = safariBang.move(SafariBangStorage.Direction.Left);
+        SafariBang.Position memory bobNewPosition = safariBang.move(SafariBangStorage.Direction.Left, 1);
 
         console.log("Bob New Row: ", bobNewPosition.row);
         console.log("Bob New Col: ", bobNewPosition.col);
@@ -101,7 +101,7 @@ contract GameplayTest is Test {
         vm.startPrank(Charlie);
         (uint charlieAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
 
-        SafariBang.Position memory charlieNewPosition = safariBang.move(SafariBangStorage.Direction.Right);
+        SafariBang.Position memory charlieNewPosition = safariBang.move(SafariBangStorage.Direction.Right, 1);
         
         require(charlieNewPosition.row == charlieRow && charlieNewPosition.col == charlieCol + 1, "Charlie should have moved right 1 square");
         vm.stopPrank();
@@ -110,12 +110,12 @@ contract GameplayTest is Test {
         vm.startPrank(Daisy);
         (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
 
-        SafariBang.Position memory daisyNewPosition = safariBang.move(SafariBangStorage.Direction.Down);
+        SafariBang.Position memory daisyNewPosition = safariBang.move(SafariBangStorage.Direction.Down, 1);
         
         require(daisyNewPosition.row == daisyRow + 1 && daisyNewPosition.col == daisyCol, "Daisy should have moved down 1 square");
         // Case 5: Out of Moves
         vm.expectRevert(bytes("You are out of moves"));
-        safariBang.move(SafariBangStorage.Direction.Down);
+        safariBang.move(SafariBangStorage.Direction.Down, 1);
 
         // Case 6: Wrap around the map
 
@@ -339,11 +339,24 @@ contract GameplayTest is Test {
 
         console.log("bob new pos: ", bobNewRow, bobNewCol);
 
-        require(abs(int8(bobNewRow), int8(10)) == 3 || abs(int8(bobNewCol), int8(10)) == 3, "Bob should have moved 3 squares in any direction");
+        require(safariBang.movesRemaining(Bob) == 0, "Bob should be out of moves.");
+
+        if (bobNewRow > 10) {
+            require(bobNewRow - 10 == 3, "Bob should have moved 3 squares in any direction");    
+        } else if (bobNewRow < 10) {
+            require(10 - bobNewRow == 3, "Bob should have moved 3 squares in any direction");    
+        }
+
+        if (bobNewCol > 10) {
+            require(bobNewCol - 10 == 3, "Bob should have moved 3 squares in any direction");
+        } else if (bobNewCol < 10) {
+            require(10 - bobNewCol == 3, "Bob should have moved 3 squares in any direction");
+        }
+        
     }
 
-    function abs(int8 x, int8 y) private pure returns (int) {
-        return x - y >= 0 ? x - y : -(x - y);
+    function abs(int x) private pure returns (int) {
+        return x>= 0 ? x : -x;
     }
     
 }
