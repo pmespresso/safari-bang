@@ -19,6 +19,7 @@ contract GameplayTest is Test {
     address Bob = address(2);
     address Charlie = address(3);
     address Daisy = address(4);
+    address Emily = address(5);
 
     uint64 subId;
     uint96 constant FUND_AMOUNT = 1 * 10**18;
@@ -46,7 +47,7 @@ contract GameplayTest is Test {
         vm.deal(Bob, 100 ether);
         vm.deal(Charlie, 100 ether);
         vm.deal(Daisy, 100 ether);
-        // vm.deal(address(safariBang), 100 ether);
+        vm.deal(Emily, 100 ether);
 
         safariBang.mintTo{value: 0.08 ether}(Alice);
         safariBang.mintTo{value: 0.08 ether}(Alice);
@@ -54,10 +55,9 @@ contract GameplayTest is Test {
         safariBang.mintTo{value: 0.08 ether}(Bob);
         safariBang.mintTo{value: 0.08 ether}(Charlie);
         safariBang.mintTo{value: 0.08 ether}(Daisy);
+        safariBang.mintTo{value: 0.08 ether}(Emily);
 
-        console.log("SafariBang balance: ", address(safariBang).balance);
-
-        require(address(safariBang).balance == 0.48 ether, "safari bang should have collected Ether from mints");
+        require(address(safariBang).balance >= 0.5 ether, "safari bang should have collected Ether from mints");
     }
 
     /**
@@ -77,7 +77,7 @@ contract GameplayTest is Test {
         // Case 1: Go Up
         vm.assume(safariBang.safariMap(row - 1, col) == 0);
 
-        SafariBang.Position memory aliceNewPosition = safariBang.move(SafariBangStorage.Direction.Up);
+        SafariBang.Position memory aliceNewPosition = safariBang.move(SafariBangStorage.Direction.Up, 1);
 
         require(aliceNewPosition.row == row - 1 && aliceNewPosition.col == col, "Alice should have moved down up square");
 
@@ -88,7 +88,7 @@ contract GameplayTest is Test {
         // Case 2: Go left
         (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
 
-        SafariBang.Position memory bobNewPosition = safariBang.move(SafariBangStorage.Direction.Left);
+        SafariBang.Position memory bobNewPosition = safariBang.move(SafariBangStorage.Direction.Left, 1);
 
         console.log("Bob New Row: ", bobNewPosition.row);
         console.log("Bob New Col: ", bobNewPosition.col);
@@ -101,7 +101,7 @@ contract GameplayTest is Test {
         vm.startPrank(Charlie);
         (uint charlieAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
 
-        SafariBang.Position memory charlieNewPosition = safariBang.move(SafariBangStorage.Direction.Right);
+        SafariBang.Position memory charlieNewPosition = safariBang.move(SafariBangStorage.Direction.Right, 1);
         
         require(charlieNewPosition.row == charlieRow && charlieNewPosition.col == charlieCol + 1, "Charlie should have moved right 1 square");
         vm.stopPrank();
@@ -110,12 +110,12 @@ contract GameplayTest is Test {
         vm.startPrank(Daisy);
         (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
 
-        SafariBang.Position memory daisyNewPosition = safariBang.move(SafariBangStorage.Direction.Down);
+        SafariBang.Position memory daisyNewPosition = safariBang.move(SafariBangStorage.Direction.Down, 1);
         
         require(daisyNewPosition.row == daisyRow + 1 && daisyNewPosition.col == daisyCol, "Daisy should have moved down 1 square");
         // Case 5: Out of Moves
         vm.expectRevert(bytes("You are out of moves"));
-        safariBang.move(SafariBangStorage.Direction.Down);
+        safariBang.move(SafariBangStorage.Direction.Down, 1);
 
         // Case 6: Wrap around the map
 
@@ -185,9 +185,6 @@ contract GameplayTest is Test {
 
         (uint bobAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
         
-        // console.log("Placement of Alice: ", aliceRow, aliceCol);
-        // console.log("God Placement of Bob: ", bobRow, bobCol);
-
         // give Alice's animal insane libido and Bob's animal insane fertility, make sure alice is female and bob is male
         aliceAnimalLibido = 100;
         bobAnimalFertility = 100;
@@ -206,8 +203,6 @@ contract GameplayTest is Test {
             bobAnimalGender
         );
 
-        // console.log("God Attributes Alice: ", aliceAnimalLibido, aliceAnimalFertility, aliceAnimalGender);
-        // console.log("God Attributes Bob: ", bobAnimalLibido, bobAnimalFertility, bobAnimalGender);
 
         SafariBangStorage.Position memory newAlicePosition = safariBang.fuck(SafariBangStorage.Direction.Up);
 
@@ -221,4 +216,139 @@ contract GameplayTest is Test {
         require(safariBang.movesRemaining(Alice) == 3, "Alice should have used 1 move to do this whole thing");
         require(safariBang.balanceOf(Alice) == aliceBalanceBefore + 1, "Alice should have a brand new baby animal in her quiver.");
     }
+
+    /**
+    @dev Fight as a defense mechanism
+            Pseudocode below:
+
+        | 0 | 0 | B | 0 |
+        | 0 | 0 | A | 0 |
+        | C | D | 0 | 0 |
+        
+        A.Quiver = [1, 2, 3]
+        B.Quiver = [4]
+        C.Quiver = [5]
+        D.Quiver = [6]
+
+        C.Fight -> D
+        burn(D.Quiver[0]) // if C wins fight
+
+        | 0 | 0 | A | 0 |
+        | 0 | 0 | 0 | 0 |
+        | 0 | C | 0 | 0 |
+
+        C.Quiver = [5]
+        D.Quiver = []
+    */
+    function testFight() public {
+
+        (uint charlieAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
+        (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
+
+        // console.log("Daisy pos: ", daisyRow, daisyCol);
+
+        uint charlieBalanceBefore = safariBang.balanceOf(Charlie);
+        uint daisyBalanceBefore = safariBang.balanceOf(Daisy);
+
+        console.log("charlieBalanceBefore: ", charlieBalanceBefore);
+        console.log("daisyBalanceBefore: ", daisyBalanceBefore);
+
+        (SafariBang.AnimalType charlieAnimalType, 
+            SafariBang.Specie charlieAnimalSpecies,
+            uint256 _charlieAnimalId, 
+            uint256 charlieAnimalSize,
+            uint256 charlieAnimalStrength,
+            uint256 charlieAnimalSpeed,
+            uint256 charlieAnimalFertility,
+            uint256 charlieAnimalAnxiety,
+            uint256 charlieAnimalAggression,
+            uint256 charlieAnimalLibido,
+            bool charlieAnimalGender,
+            address charlieOwner) = safariBang.idToAnimal(charlieAnimalId);
+        (SafariBang.AnimalType daisyAnimalType, 
+            SafariBang.Specie daisyAnimalSpecies,
+            uint256 _daisyAnimalId, 
+            uint256 daisyAnimalSize,
+            uint256 daisyAnimalStrength,
+            uint256 daisyAnimalSpeed,
+            uint256 daisyAnimalFertility,
+            uint256 daisyAnimalAnxiety,
+            uint256 daisyAnimalAggression,
+            uint256 daisyAnimalLibido,
+            bool daisyAnimalGender,
+            address daisyOwner) = safariBang.idToAnimal(daisyAnimalId);
+
+        // put daisy next to charlie
+        safariBang.godModePlacement(Daisy, 6, charlieRow, charlieCol + 1);
+        
+        (uint daisyAnimalIdNew, uint8 daisyRowNew, uint8 daisyColNew) = safariBang.playerToPosition(Daisy);
+        
+        console.log("Charlie pos: ", charlieRow, charlieCol);
+        console.log("Daisy God Mode Placed: ", daisyRowNew, daisyColNew);
+        
+        vm.startPrank(Charlie);
+
+        SafariBangStorage.Position memory newCharliePosition = safariBang.fight(SafariBangStorage.Direction.Right);
+
+        uint charlieBalanceAfter = safariBang.balanceOf(Charlie);
+
+        require(charlieBalanceAfter == charlieBalanceBefore, "Winning a fight should not change your balance.");
+    }
+
+    
+    /**
+    @dev Flee as a defense mechanism
+            Pseudocode below:
+
+        B.Pos = [10, 10]
+        | 0 | 0 | 0 | 0 | 0 |
+        | 0 | 0 | A | 0 | 0 |
+        | 0 | D | B | E | 0 |
+        | 0 | 0 | C | 0 | 0 |
+        | 0 | 0 | 0 | 0 | 0 |
+
+        B.Flee
+
+        B.Pos = [10, 13]
+        | 0 | 0 | 0 | 0 | 0 | 0 |
+        | 0 | 0 | A | 0 | 0 | 0 |
+        | 0 | D | 0 | E | 0 | B |
+        | 0 | 0 | C | 0 | 0 | 0 |
+        | 0 | 0 | 0 | 0 | 0 | 0 |
+
+        
+    */
+    function testFlee() public {
+        // place all of them adjacent to Bob in the middle
+        safariBang.godModePlacement(Alice, 1, 10, 10);
+        safariBang.godModePlacement(Bob, 4, 11, 10);
+        safariBang.godModePlacement(Charlie, 5, 12, 10);
+        safariBang.godModePlacement(Daisy, 6, 10, 9);
+        safariBang.godModePlacement(Emily, 7, 10, 11);
+
+        (uint _bobId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
+
+        console.log("bob current pos: ", bobRow, bobCol);
+
+        // make Bob flee
+        vm.startPrank(Bob);
+        safariBang.flee();
+
+        // expect Bob to be 3 squares from previous
+        (uint bobId, uint8 bobNewRow, uint8 bobNewCol) = safariBang.playerToPosition(Bob);
+
+        console.log("bob new pos: ", bobNewRow, bobNewCol);
+
+        require(safariBang.movesRemaining(Bob) == 0, "Bob should be out of moves.");
+
+        // if fleer moved at all
+        if (bobRow != bobNewRow) {
+            require(bobNewRow > bobRow ? bobNewRow - bobRow == 3 : bobRow - bobNewRow == 3, "Bob should have moved 3 cells.");
+        } else if(bobCol != bobNewCol) {
+            require(bobNewCol > bobCol ? bobNewCol - bobCol == 3 : bobCol - bobNewCol == 3, "Bob should have moved 3 cells.");
+        } else {
+            require(bobNewRow == bobRow && bobNewCol == bobCol, "Bob failed to flee, should stay in place.");
+        }
+    }
+    
 }

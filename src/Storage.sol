@@ -12,8 +12,10 @@ contract SafariBangStorage {
     using Strings for uint256;
     
     event MoveToEmptySquare(address whoMoved, uint8 newRow, uint8 newCol);
+    event FightAttempt(address fighter, address fightee);
     event FuckAttempt(address fucker, address fuckee);
     event FuckSuccess(address fucker, address newlyMinted);
+    event FightSuccess(address victor, address loser);
     event AnimalReplacedFromQuiver(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
