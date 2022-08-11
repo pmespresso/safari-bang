@@ -341,22 +341,14 @@ contract GameplayTest is Test {
 
         require(safariBang.movesRemaining(Bob) == 0, "Bob should be out of moves.");
 
-        if (bobNewRow > 10) {
-            require(bobNewRow - 10 == 3, "Bob should have moved 3 squares in any direction");    
-        } else if (bobNewRow < 10) {
-            require(10 - bobNewRow == 3, "Bob should have moved 3 squares in any direction");    
+        // if fleer moved at all
+        if (bobRow != bobNewRow) {
+            require(bobNewRow > bobRow ? bobNewRow - bobRow == 3 : bobRow - bobNewRow == 3, "Bob should have moved 3 cells.");
+        } else if(bobCol != bobNewCol) {
+            require(bobNewCol > bobCol ? bobNewCol - bobCol == 3 : bobCol - bobNewCol == 3, "Bob should have moved 3 cells.");
+        } else {
+            require(bobNewRow == bobRow && bobNewCol == bobCol, "Bob failed to flee, should stay in place.");
         }
-
-        if (bobNewCol > 10) {
-            require(bobNewCol - 10 == 3, "Bob should have moved 3 squares in any direction");
-        } else if (bobNewCol < 10) {
-            require(10 - bobNewCol == 3, "Bob should have moved 3 squares in any direction");
-        }
-        
-    }
-
-    function abs(int x) private pure returns (int) {
-        return x>= 0 ? x : -x;
     }
     
 }
