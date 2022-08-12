@@ -2,12 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+import "forge-std/Test.sol";
+
+import "../../script/HelperConfig.sol";
 import "../SafariBang.sol";
 import "../Storage.sol";
 import "../KeepersOMFG.sol";
-import "forge-std/Test.sol";
 import "./utils/Cheats.sol";
-
 import "./mocks/MockVRFCoordinatorV2.sol";
 
 contract KeepersOMFGTest is Test {
@@ -21,19 +22,33 @@ contract KeepersOMFGTest is Test {
 
     function setUp() public {
         staticTime = block.timestamp;
+
+        HelperConfig helperConfig = new HelperConfig();
+
+        (
+            ,
+            ,
+            ,
+            address link,
+            ,
+            ,
+            uint64 subscriptionId,
+            ,
+            bytes32 keyHash
+        ) = helperConfig.activeNetworkConfig();
+
         
         vrfCoordinator = new MockVRFCoordinatorV2();
         uint64 subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, 1 * 10**18);
+        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), link, keyHash);
 
         safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
             "https://ipfs.io/ipfs/",
-            subId,
-            address(vrfCoordinator),
-            address(0),
-            vrfCoordinator
+            vrfConsumer,
+            address(vrfCoordinator)
         );
 
         // safariBang.transferSuperOwnership(address(asteroidKeeper));

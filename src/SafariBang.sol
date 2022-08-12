@@ -33,12 +33,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         vrfCoordinator = VRFCoordinatorV2Interface(s_vrfCoordinator);
         vrfConsumer = s_vrfConsumer;
         // new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
-
-        vrfConsumer.requestRandomWords();
-        uint256 requestId = vrfConsumer.s_requestId();
+        
+        // N.B. Can't do this on deploy because not funded yet
+        // vrfConsumer.requestRandomWords();
+        // uint256 requestId = vrfConsumer.s_requestId();
         // vrfConsumer.fulfillRandomWords(requestId, address(vrfConsumer));
 
-        words = getWords(requestId);
+        // words = getWords(requestId);
     }
 
     /**
@@ -46,6 +47,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
+        vrfConsumer.requestRandomWords();
+        uint256 requestId = vrfConsumer.s_requestId();
+
+        words = getWords(requestId);
         for (uint i = 0; i < howMany; i++) {
             createAnimal(address(this));
         }
