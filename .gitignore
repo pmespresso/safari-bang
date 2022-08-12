@@ -2,9 +2,7 @@
 cache/
 out/
 
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*
+# Ignores development broadcast logs but not Mumbai or Polygon
 /broadcast/*/31337/
 
 .vscode/
