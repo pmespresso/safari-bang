@@ -7,6 +7,7 @@ import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "./test/mocks/MockVRFCoordinatorV2.sol";
 import "./VRFConsumerV2.sol";
@@ -24,16 +25,14 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         string memory _name,
         string memory _symbol,
         string memory _baseURI,
-        uint64 s_subscriptionId,
-        address s_vrfCoordinator_address,
-        address link_token_contract,
-        MockVRFCoordinatorV2 s_vrfCoordinator
+        VRFConsumerV2 s_vrfConsumer,
+        address s_vrfCoordinator
         ) ERC721(_name, _symbol) {
         baseURI = _baseURI;
 
-        // TODO: change to real for deployment
-        vrfCoordinator = s_vrfCoordinator;
-        vrfConsumer = new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
+        vrfCoordinator = VRFCoordinatorV2Interface(s_vrfCoordinator);
+        vrfConsumer = s_vrfConsumer;
+        // new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
 
         vrfConsumer.requestRandomWords();
         uint256 requestId = vrfConsumer.s_requestId();
