@@ -438,7 +438,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function _getNewRandomWords() internal returns (uint256[] memory words) {
         vrfConsumer.requestRandomWords();
         uint256 requestId = vrfConsumer.s_requestId();
-        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+        // vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
 
         return getWords(requestId);
     }
