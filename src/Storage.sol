@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
+// import "chainlink-brownie-contracts/contracts/src/v0.8/dev/VRFCoordinatorV2.sol";
 import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "forge-std/console.sol";
@@ -20,18 +21,8 @@ contract SafariBangStorage {
     event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
    
-    /**
-        Chainlink VRF - This if for Mumbai.
-        TODO: Change to Polygon Mainnet
-        https://docs.chain.link/docs/vrf-contracts/#polygon-matic-mumbai-testnet
-     */
-    
-    bytes32 keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
-    uint64 subId;
     VRFConsumerV2 public vrfConsumer;
-    MockVRFCoordinatorV2 public vrfCoordinator;
-
-    uint96 constant FUND_AMOUNT = 1 * 10**18;
+    VRFCoordinatorV2Interface public vrfCoordinator;
 
     uint256[] internal words;
 

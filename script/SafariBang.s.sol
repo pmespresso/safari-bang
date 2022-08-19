@@ -2,16 +2,38 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+
+import "./HelperConfig.sol";
 import "../src/SafariBang.sol";
+import "../src/VRFConsumerV2.sol";
 
 contract SafariBangScript is Script {
-    // function setUp() public {}
-
     function run() public {
-        // vm.startBroadcast();
+        HelperConfig helperConfig = new HelperConfig();
 
-        // SafariBang safaribang = new SafariBang("Safari Bang", "SAFABA", "https://ipfs.io/ipfs/");
+        (
+            ,
+            ,
+            ,
+            address link,
+            ,
+            ,
+            uint64 subscriptionId,
+            address vrfCoordinator,
+            bytes32 keyHash
+        ) = helperConfig.activeNetworkConfig();
 
-        // vm.stopBroadcast();
+        vm.startBroadcast();
+        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subscriptionId, vrfCoordinator, link, keyHash);
+
+        SafariBang safariBang = new SafariBang(
+            "SafariBang",
+            "SAFABA",
+            "https://ipfs.io/ipfs/",
+            vrfConsumer,
+            vrfCoordinator
+        );
+
+        vm.stopBroadcast();
     }
 }

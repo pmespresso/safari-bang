@@ -28,19 +28,19 @@ contract GameplayTest is Test {
     MockVRFCoordinatorV2 vrfCoordinator;
 
     function setUp() public {
+        bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
         linkToken = new LinkToken();
         vrfCoordinator = new MockVRFCoordinatorV2();
         subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
+        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), address(linkToken), keyHash);
 
         safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
             "https://ipfs.io/ipfs/",
-            subId,
-            address(vrfCoordinator),
-            address(linkToken),
-            vrfCoordinator
+            vrfConsumer,
+            address(vrfCoordinator)
         );
 
         vm.deal(Alice, 100 ether);

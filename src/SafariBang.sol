@@ -7,6 +7,7 @@ import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "./test/mocks/MockVRFCoordinatorV2.sol";
 import "./VRFConsumerV2.sol";
@@ -24,22 +25,21 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         string memory _name,
         string memory _symbol,
         string memory _baseURI,
-        uint64 s_subscriptionId,
-        address s_vrfCoordinator_address,
-        address link_token_contract,
-        MockVRFCoordinatorV2 s_vrfCoordinator
+        VRFConsumerV2 s_vrfConsumer,
+        address s_vrfCoordinator
         ) ERC721(_name, _symbol) {
         baseURI = _baseURI;
 
-        // TODO: change to real for deployment
-        vrfCoordinator = s_vrfCoordinator;
-        vrfConsumer = new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
+        vrfCoordinator = VRFCoordinatorV2Interface(s_vrfCoordinator);
+        vrfConsumer = s_vrfConsumer;
+        // new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
+        
+        // N.B. Can't do this on deploy because not funded yet
+        // vrfConsumer.requestRandomWords();
+        // uint256 requestId = vrfConsumer.s_requestId();
+        // vrfConsumer.fulfillRandomWords(requestId, address(vrfConsumer));
 
-        vrfConsumer.requestRandomWords();
-        uint256 requestId = vrfConsumer.s_requestId();
-        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
-
-        words = getWords(requestId);
+        // words = getWords(requestId);
     }
 
     /**
@@ -47,6 +47,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
+        vrfConsumer.requestRandomWords();
+        uint256 requestId = vrfConsumer.s_requestId();
+
+        words = getWords(requestId);
         for (uint i = 0; i < howMany; i++) {
             createAnimal(address(this));
         }
@@ -439,7 +443,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
     function _getNewRandomWords() internal returns (uint256[] memory words) {
         vrfConsumer.requestRandomWords();
         uint256 requestId = vrfConsumer.s_requestId();
-        vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
+        // vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
 
         return getWords(requestId);
     }
