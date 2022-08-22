@@ -6,7 +6,7 @@ import "forge-std/Script.sol";
 import "./HelperConfig.sol";
 import "../src/SafariBang.sol";
 
-contract SafariBangScript is Script {
+contract DeploySafariBang is Script {
     function run() public {
         HelperConfig helperConfig = new HelperConfig();
 
