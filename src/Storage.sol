@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.13;
 
-// import "chainlink-brownie-contracts/contracts/src/v0.8/dev/VRFCoordinatorV2.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "forge-std/console.sol";
 
+import "./test/mocks/LinkToken.sol";
 import "./test/mocks/MockVRFCoordinatorV2.sol";
-import "./VRFConsumerV2.sol";
 
 contract SafariBangStorage {
     using Strings for uint256;
@@ -20,11 +20,6 @@ contract SafariBangStorage {
     event AnimalReplacedFromQuiver(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
-   
-    VRFConsumerV2 public vrfConsumer;
-    VRFCoordinatorV2Interface public vrfCoordinator;
-
-    uint256[] internal words;
 
     string public baseURI;
     uint256 public currentTokenId = 0;

@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 
-import "../VRFConsumerV2.sol";
 import "../Storage.sol";
 import "../SafariBang.sol";
 import "./mocks/LinkToken.sol";
@@ -27,20 +26,31 @@ contract SafariBangTest is Test {
     MockVRFCoordinatorV2 vrfCoordinator;
 
     function setUp() public {
+        vrfCoordinator = new MockVRFCoordinatorV2();
         bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
         linkToken = new LinkToken();
-        vrfCoordinator = new MockVRFCoordinatorV2();
+        console.log("link Token, ", address(linkToken));
         subId = vrfCoordinator.createSubscription();
+        console.log("subid: ", subId);
         vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
-        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), address(linkToken), keyHash);
-
+        
         safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
             "https://ipfs.io/ipfs/",
-            vrfConsumer,
-            address(vrfCoordinator)
+            address(vrfCoordinator),
+            address(linkToken),
+            subId,
+            keyHash
         );
+
+        vrfCoordinator.addConsumer(subId, address(safariBang));
+
+        safariBang.getRandomWords();
+
+        vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
+
+        console.log("AFTER");
 
         vm.deal(Alice, 100 ether);
         vm.deal(Bob, 100 ether);
@@ -50,8 +60,8 @@ contract SafariBangTest is Test {
     function testCreateAnimal() public {
         uint new_guy_id = safariBang.createAnimal(Alice);
 
-        (SafariBang.AnimalType animalType, 
-            SafariBang.Specie species,
+        (, 
+            ,
             uint256 id, 
             uint256 size,
             uint256 strength,
@@ -61,7 +71,7 @@ contract SafariBangTest is Test {
             uint256 aggression,
             uint256 libido,
             bool gender,
-            address owner) = safariBang.idToAnimal(new_guy_id);
+            ) = safariBang.idToAnimal(new_guy_id);
 
         console.log("size: ", size);
         console.log("strength: ", strength);
@@ -90,17 +100,17 @@ contract SafariBangTest is Test {
         assertEq(uint256(currentTokenId), 80);
 
         // CASE 2: AnimalById check positions of animals by mapping(id => animal)
-        (SafariBang.AnimalType animalType, 
-            SafariBang.Specie species,
+        (, 
+            ,
             uint256 id, 
-            uint256 size,
-            uint256 strength,
-            uint256 speed,
-            uint256 fertility,
-            uint256 anxiety,
-            uint256 aggression,
-            uint256 libido,
-            bool gender,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
             address owner) = safariBang.idToAnimal(69);
         
         assertEq(id, 69);

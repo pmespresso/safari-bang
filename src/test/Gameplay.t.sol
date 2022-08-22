@@ -33,14 +33,16 @@ contract GameplayTest is Test {
         vrfCoordinator = new MockVRFCoordinatorV2();
         subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
-        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), address(linkToken), keyHash);
+        // VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), address(linkToken), keyHash);
 
         safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
             "https://ipfs.io/ipfs/",
-            vrfConsumer,
-            address(vrfCoordinator)
+            address(vrfCoordinator),
+            address(linkToken),
+            subId,
+            keyHash
         );
 
         vm.deal(Alice, 100 ether);
@@ -326,7 +328,7 @@ contract GameplayTest is Test {
         safariBang.godModePlacement(Daisy, 6, 10, 9);
         safariBang.godModePlacement(Emily, 7, 10, 11);
 
-        (uint _bobId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
+        (, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
 
         console.log("bob current pos: ", bobRow, bobCol);
 
@@ -335,7 +337,7 @@ contract GameplayTest is Test {
         safariBang.flee();
 
         // expect Bob to be 3 squares from previous
-        (uint bobId, uint8 bobNewRow, uint8 bobNewCol) = safariBang.playerToPosition(Bob);
+        (, uint8 bobNewRow, uint8 bobNewCol) = safariBang.playerToPosition(Bob);
 
         console.log("bob new pos: ", bobNewRow, bobNewCol);
 
