@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
+
 
 pragma solidity ^0.8.0;
 
@@ -32,7 +33,7 @@ contract KeepersOMFGTest is Test {
             address link,
             ,
             ,
-            uint64 subscriptionId,
+            ,
             ,
             bytes32 keyHash
         ) = helperConfig.activeNetworkConfig();
@@ -41,14 +42,16 @@ contract KeepersOMFGTest is Test {
         vrfCoordinator = new MockVRFCoordinatorV2();
         uint64 subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, 1 * 10**18);
-        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), link, keyHash);
+        // VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subId, address(vrfCoordinator), link, keyHash);
 
         safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
             "https://ipfs.io/ipfs/",
-            vrfConsumer,
-            address(vrfCoordinator)
+            address(vrfCoordinator),
+            link,
+            subId,
+            keyHash
         );
 
         // safariBang.transferSuperOwnership(address(asteroidKeeper));
@@ -83,7 +86,7 @@ contract KeepersOMFGTest is Test {
         // console.log("BEFORE UPKEEP");
         // before upkeep, every id should occupy a cell
         for (uint i = 1; i <= currentTokenId; i++) {
-            (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(i);
+            (, uint8 row, uint8 col) = safariBang.idToPosition(i);
 
             assert(!(row == 0 && col == 0));
         }
@@ -125,7 +128,7 @@ contract KeepersOMFGTest is Test {
 
         // For Wild Animals, check that they are wiped
         for (uint i = 1; i <= safariBang.currentTokenId(); i++) {
-            (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(i);
+            (, uint8 row, uint8 col) = safariBang.idToPosition(i);
             address owner = safariBang.ownerOf(i);
 
             // Wild

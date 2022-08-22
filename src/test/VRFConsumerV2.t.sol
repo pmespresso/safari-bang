@@ -1,10 +1,12 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "../VRFConsumerV2.sol";
+import "../SafariBang.sol";
 import "./mocks/MockVRFCoordinatorV2.sol";
 import "./mocks/LinkToken.sol";
 import "./utils/Cheats.sol";
+import "../VRFConsumerV2.sol";
+
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 

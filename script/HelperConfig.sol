@@ -28,6 +28,7 @@ contract HelperConfig {
 
     function getMumbaiEthConfig()
         internal
+        pure
         returns (NetworkConfig memory mumbaiNetworkConfig)
     {
         mumbaiNetworkConfig = NetworkConfig({
@@ -45,6 +46,7 @@ contract HelperConfig {
 
     function getRinkebyEthConfig()
         internal
+        pure
         returns (NetworkConfig memory rinkebyNetworkConfig)
     {
         rinkebyNetworkConfig = NetworkConfig({
@@ -62,6 +64,7 @@ contract HelperConfig {
 
     function getAnvilEthConfig()
         internal
+        pure
         returns (NetworkConfig memory anvilNetworkConfig)
     {
         anvilNetworkConfig = NetworkConfig({

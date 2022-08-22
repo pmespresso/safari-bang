@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.13;
 
 
 import "solmate/tokens/ERC20.sol";
@@ -7,39 +7,39 @@ import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
 import "./test/mocks/MockVRFCoordinatorV2.sol";
-import "./VRFConsumerV2.sol";
 import "./MultiOwnable.sol";
 import "./Storage.sol";
+import "./VRFConsumerV2.sol";
 
 error MintPriceNotPaid();
 error MaxSupply();
 error NonExistentTokenUri();
 error WithdrawTransfer();
 
-contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage {
+contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage, VRFConsumerV2 {
     using Strings for uint256;
+
+    event MapGenesis();
+    event VRFGetWordsSuccess();
+    event CreateAnimal(uint id);
+    event Log(string message);
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _baseURI,
-        VRFConsumerV2 s_vrfConsumer,
-        address s_vrfCoordinator
-        ) ERC721(_name, _symbol) {
+        address _vrfCoordinator,
+        address _linkToken,
+        uint64 _subId,
+        bytes32 _keyHash
+        ) ERC721(_name, _symbol) VRFConsumerV2(_subId, _vrfCoordinator, _linkToken, _keyHash) {
         baseURI = _baseURI;
 
-        vrfCoordinator = VRFCoordinatorV2Interface(s_vrfCoordinator);
-        vrfConsumer = s_vrfConsumer;
-        // new VRFConsumerV2(s_subscriptionId, s_vrfCoordinator_address, link_token_contract, keyHash);
-        
-        // N.B. Can't do this on deploy because not funded yet
-        // vrfConsumer.requestRandomWords();
-        // uint256 requestId = vrfConsumer.s_requestId();
-        // vrfConsumer.fulfillRandomWords(requestId, address(vrfConsumer));
-
-        // words = getWords(requestId);
+        _transferSuperOwnership(msg.sender);
     }
 
     /**
@@ -47,10 +47,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
-        vrfConsumer.requestRandomWords();
-        uint256 requestId = vrfConsumer.s_requestId();
+        emit MapGenesis();
 
-        words = getWords(requestId);
+        getRandomWords();
+
+        emit VRFGetWordsSuccess();
         for (uint i = 0; i < howMany; i++) {
             createAnimal(address(this));
         }
@@ -58,6 +59,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
     function createAnimal(address to) public returns (uint newGuyId) {
         uint256 currId = ++currentTokenId;
+
+        emit CreateAnimal(currId);
 
         // if you mint multiple you get more turns
         // safari gets as many moves as there are animals 
@@ -71,10 +74,14 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
 
         // console.log("Minting => ", currId);
 
+        emit Log("createAnimal(): Before Total Supply Check");
+
         if (currId > TOTAL_SUPPLY) {
             console.log("ERROR: MAX SUPPLY");
             revert MaxSupply();
         }
+
+        emit Log("createAnimal(): Before _safeMint()");
 
         _safeMint(to, currId);
 
@@ -86,10 +93,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         uint8 col;
         uint8 modulo = NUM_ROWS;
 
+        require(s_randomWords.length > 0, "Randomness should have been fulfilled.");
+
         while(!isEmptySquare) {
-            speciesIndex = words[currId % words.length] % species.length;
-            row = uint8(words[currId % words.length] % modulo);
-            col = uint8(words[(currId + 1) % words.length] % modulo);
+            speciesIndex = s_randomWords[currId % s_randomWords.length] % species.length;
+            row = uint8(s_randomWords[currId % s_randomWords.length] % modulo);
+            col = uint8(s_randomWords[(currId + 1) % s_randomWords.length] % modulo);
 
             if (safariMap[row][col] == 0) {
                 isEmptySquare = true;
@@ -98,27 +107,33 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             }
         }
 
+        emit Log("Past while loop");
+
         Position memory position = Position({
             animalId: currId,
             row: row,
             col: col
         });
 
+        emit Log("After create Position");
+
         Animal memory wipAnimal = Animal({
             animalType: to == address(this) ? AnimalType
             .WILD_ANIMAL : AnimalType.DOMESTICATED_ANIMAL,
             species: species[speciesIndex],
             id: currId,
-            size: words[0] % 50,
-            strength: words[0] % 49,
-            speed: words[0] % 48,
-            fertility: words[0] % 47,
-            anxiety: words[0] % 46,
-            aggression: words[0] % 45,
-            libido: words[0] % 44, 
-            gender: words[0] % 2 == 0 ? true : false,
+            size: s_randomWords[0] % 50,
+            strength: s_randomWords[0] % 49,
+            speed: s_randomWords[0] % 48,
+            fertility: s_randomWords[0] % 47,
+            anxiety: s_randomWords[0] % 46,
+            aggression: s_randomWords[0] % 45,
+            libido: s_randomWords[0] % 44, 
+            gender: s_randomWords[0] % 2 == 0 ? true : false,
             owner: to
         });
+
+        emit Log("After create Animal");
 
         // only Animals have quiver, WILD_ANIMALS do not belong in a quiver
         if (wipAnimal.owner != address(this)) {
@@ -291,13 +306,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         emit FightAttempt(challenger.owner, theGuyGettingFought.owner);
 
         // VRF gen random number
-        uint256[] memory randomWords = _getNewRandomWords();
+        getRandomWords();
         
-        console.log("randomWords[1]: ", randomWords[1]);
-        console.log("randomWords[1] / 1e18: ", randomWords[1] / 1e70);
+        console.log("randomWords[1]: ", s_randomWords[1]);
+        console.log("randomWords[1] / 1e18: ", s_randomWords[1] / 1e70);
 
         // apply multiplier based on delta of aggression, speed, strength, size
-        uint multiplier = (challenger.aggression - theGuyGettingFought.aggression) * (challenger.speed - theGuyGettingFought.speed) * (challenger.strength - theGuyGettingFought.strength) * (challenger.size - theGuyGettingFought.size) * (randomWords[0] / 1e70);
+        uint multiplier = (challenger.aggression - theGuyGettingFought.aggression) * (challenger.speed - theGuyGettingFought.speed) * (challenger.strength - theGuyGettingFought.strength) * (challenger.size - theGuyGettingFought.size) * (s_randomWords[0] / 1e70);
 
         console.log("muliplier: ", multiplier);
 
@@ -356,13 +371,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         emit FuckAttempt(fucker.owner, fuckee.owner);
 
         // VRF gen random number
-        uint256[] memory randomWords = _getNewRandomWords();
+        getRandomWords();
 
-        console.log("randomWords[0]: ", randomWords[0]);
-        console.log("randomWords[0] / 1e18: ", randomWords[0] / 1e70);
+        console.log("randomWords[0]: ", s_randomWords[0]);
+        console.log("randomWords[0] / 1e18: ", s_randomWords[0] / 1e70);
 
         // apply multiplier based on libido and fertility
-        uint multiplier = fucker.libido * fuckee.fertility * (randomWords[0] / 1e70);
+        uint multiplier = fucker.libido * fuckee.fertility * (s_randomWords[0] / 1e70);
 
         console.log("muliplier: ", multiplier);
 
@@ -412,8 +427,8 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         
         // pick a random direction
         // VRF gen random number
-        uint256[] memory randomWords = _getNewRandomWords();
-        uint256 directionIndex = randomWords[2] % 4;
+        getRandomWords();
+        uint256 directionIndex = s_randomWords[2] % 4;
         Direction direction;
         if (directionIndex == 0) {
             direction = Direction.Up;
@@ -440,15 +455,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         }
     }
 
-    function _getNewRandomWords() internal returns (uint256[] memory words) {
-        vrfConsumer.requestRandomWords();
-        uint256 requestId = vrfConsumer.s_requestId();
-        // vrfCoordinator.fulfillRandomWords(requestId, address(vrfConsumer));
-
-        return getWords(requestId);
-    }
-
-    function _getAdjacents(Position memory position) internal returns (Position[4] memory adjacents) {
+    function _getAdjacents(Position memory position) internal view returns (Position[4] memory adjacents) {
         uint top = safariMap[position.row - 1][position.col];
         uint down = safariMap[position.row + 1][position.col ];
         uint left = safariMap[position.row][position.col - 1];
@@ -491,14 +498,14 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         return result;
     }
 
-    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction direction, uint8 howManySquares) internal returns (uint8, uint8) {
+    function _getCoordinatesToCheck(uint8 currentRow, uint8 currentCol, Direction direction, uint8 howManySquares) internal pure returns (uint8, uint8) {
         uint8 rowToCheck = direction == Direction.Up ? currentRow - howManySquares : direction == Direction.Down ? currentRow + howManySquares : currentRow;
         uint8 colToCheck = direction == Direction.Left ? currentCol - howManySquares : direction == Direction.Right ? currentCol + howManySquares : currentCol;
 
         return (rowToCheck, colToCheck);
     }
 
-    function _checkIfEmptyCell(uint8 rowToCheck, uint8 colToCheck) internal returns(bool) {
+    function _checkIfEmptyCell(uint8 rowToCheck, uint8 colToCheck) internal view returns(bool) {
         console.log("checkIfEmptyCell: ", safariMap[rowToCheck][colToCheck]);
         if (safariMap[rowToCheck][colToCheck] == 0) {
             return true;
@@ -587,9 +594,12 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
         @param to address of who to mint the character to
      */
     function mintTo(address to) public payable returns (uint256) {
+        emit Log("Mint To");
         if (msg.value < MINT_PRICE) {
             revert MintPriceNotPaid();
         }
+
+        emit Log("About to call createAnimal");
 
         createAnimal(to);
 
@@ -615,14 +625,28 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage 
             revert WithdrawTransfer();
         }
     }
+    
+    // VRF
+    function getRandomWords() public {
+        require(s_subscriptionId != 0, "Subscription ID not set");
+
+        s_requestId = COORDINATOR.requestRandomWords(
+            s_keyHash,
+            s_subscriptionId,
+            s_requestConfirmations,
+            s_callbackGasLimit,
+            s_numWords
+        );
+        console.log("Request Id: ", s_requestId);
+    }
 
      function getWords(uint256 requestId)
         public
         view
         returns (uint256[] memory)
     {
-        uint256[] memory _words = new uint256[](vrfConsumer.s_numWords());
-        for (uint256 i = 0; i < vrfConsumer.s_numWords(); i++) {
+        uint256[] memory _words = new uint256[](s_numWords);
+        for (uint256 i = 0; i < s_numWords; i++) {
             _words[i] = uint256(keccak256(abi.encode(requestId, i)));
         }
         return _words;

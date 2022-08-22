@@ -5,9 +5,8 @@ import "forge-std/Script.sol";
 
 import "./HelperConfig.sol";
 import "../src/SafariBang.sol";
-import "../src/VRFConsumerV2.sol";
 
-contract SafariBangScript is Script {
+contract DeploySafariBang is Script {
     function run() public {
         HelperConfig helperConfig = new HelperConfig();
 
@@ -24,14 +23,15 @@ contract SafariBangScript is Script {
         ) = helperConfig.activeNetworkConfig();
 
         vm.startBroadcast();
-        VRFConsumerV2 vrfConsumer = new VRFConsumerV2(subscriptionId, vrfCoordinator, link, keyHash);
 
         SafariBang safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
             "https://ipfs.io/ipfs/",
-            vrfConsumer,
-            vrfCoordinator
+            vrfCoordinator,
+            link,
+            subscriptionId,
+            keyHash
         );
 
         vm.stopBroadcast();
