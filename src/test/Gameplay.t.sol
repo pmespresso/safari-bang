@@ -44,6 +44,10 @@ contract GameplayTest is Test {
             subId,
             keyHash
         );
+        vrfCoordinator.addConsumer(subId, address(safariBang));
+
+        safariBang.getRandomWords();
+        vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
 
         vm.deal(Alice, 100 ether);
         vm.deal(Bob, 100 ether);
@@ -255,31 +259,6 @@ contract GameplayTest is Test {
         console.log("charlieBalanceBefore: ", charlieBalanceBefore);
         console.log("daisyBalanceBefore: ", daisyBalanceBefore);
 
-        (SafariBang.AnimalType charlieAnimalType, 
-            SafariBang.Specie charlieAnimalSpecies,
-            uint256 _charlieAnimalId, 
-            uint256 charlieAnimalSize,
-            uint256 charlieAnimalStrength,
-            uint256 charlieAnimalSpeed,
-            uint256 charlieAnimalFertility,
-            uint256 charlieAnimalAnxiety,
-            uint256 charlieAnimalAggression,
-            uint256 charlieAnimalLibido,
-            bool charlieAnimalGender,
-            address charlieOwner) = safariBang.idToAnimal(charlieAnimalId);
-        (SafariBang.AnimalType daisyAnimalType, 
-            SafariBang.Specie daisyAnimalSpecies,
-            uint256 _daisyAnimalId, 
-            uint256 daisyAnimalSize,
-            uint256 daisyAnimalStrength,
-            uint256 daisyAnimalSpeed,
-            uint256 daisyAnimalFertility,
-            uint256 daisyAnimalAnxiety,
-            uint256 daisyAnimalAggression,
-            uint256 daisyAnimalLibido,
-            bool daisyAnimalGender,
-            address daisyOwner) = safariBang.idToAnimal(daisyAnimalId);
-
         // put daisy next to charlie
         safariBang.godModePlacement(Daisy, 6, charlieRow, charlieCol + 1);
         
@@ -293,6 +272,8 @@ contract GameplayTest is Test {
         SafariBangStorage.Position memory newCharliePosition = safariBang.fight(SafariBangStorage.Direction.Right);
 
         uint charlieBalanceAfter = safariBang.balanceOf(Charlie);
+
+        console.log("charlieBalanceAfter => ", charlieBalanceAfter);
 
         require(charlieBalanceAfter == charlieBalanceBefore, "Winning a fight should not change your balance.");
     }
