@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-
 import "solmate/tokens/ERC20.sol";
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
@@ -47,11 +46,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         @dev On each destruction of the game map, this genesis function is called by the contract super owner to randomly assign new animals across the map.
      */
     function mapGenesis(uint howMany) public onlySuperOwner {
+        require(s_randomWords.length > 0, "Randomness should be fulfilled first.");
         emit MapGenesis();
 
-        getRandomWords();
-
-        emit VRFGetWordsSuccess();
         for (uint i = 0; i < howMany; i++) {
             createAnimal(address(this));
         }
@@ -312,12 +309,18 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         console.log("randomWords[1] / 1e18: ", s_randomWords[1] / 1e70);
 
         // apply multiplier based on delta of aggression, speed, strength, size
-        uint multiplier = (challenger.aggression - theGuyGettingFought.aggression) * (challenger.speed - theGuyGettingFought.speed) * (challenger.strength - theGuyGettingFought.strength) * (challenger.size - theGuyGettingFought.size) * (s_randomWords[0] / 1e70);
+        uint multiplier = (
+            (challenger.aggression - theGuyGettingFought.aggression) + 
+            (challenger.speed - theGuyGettingFought.speed) + 
+            (challenger.strength - theGuyGettingFought.strength) + 
+            (challenger.size - theGuyGettingFought.size) + 1
+            ) * (s_randomWords[0] / 1e73);
 
         console.log("muliplier: ", multiplier);
 
-         if (multiplier > 50) {
+         if (multiplier > 5000) {
             console.log("Challenger Won");
+            emit ChallengerWonFight(challenger.owner, theGuyGettingFought.owner, rowToCheck, colToCheck);
             // If challenger wins the fight, challenger moves into loser's square, loser is burned
             deleteFirstAnimalFromQuiver(theGuyGettingFought.owner, theGuyGettingFought.id);
             Position memory newPosition;
@@ -334,8 +337,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
                     movesRemaining[challenger.owner] -= 1;
                 }
             }
-
-            emit FightSuccess(challenger.owner, theGuyGettingFought.owner);
             
             return newPosition;
         } else {
@@ -343,7 +344,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             // If lose burn loser, nobody moves
             deleteFirstAnimalFromQuiver(challenger.owner, challenger.id);
             console.log("movesRemaining[challenger.owner]: ", movesRemaining[challenger.owner]);
-            emit FightSuccess(theGuyGettingFought.owner, challenger.owner);
+            emit ChallengerLostFight(challenger.owner, theGuyGettingFought.owner, challengerPos.row, challengerPos.col);
             return challengerPos;
         }
     }

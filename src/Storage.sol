@@ -16,7 +16,8 @@ contract SafariBangStorage {
     event FightAttempt(address fighter, address fightee);
     event FuckAttempt(address fucker, address fuckee);
     event FuckSuccess(address fucker, address newlyMinted);
-    event FightSuccess(address victor, address loser);
+    event ChallengerWonFight(address victor, address loser, uint8 newChallengerRow, uint8 newChallengerCol);
+    event ChallengerLostFight(address victor, address loser, uint8 newChallengerRow, uint8 newChallengerCol);
     event AnimalReplacedFromQuiver(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
     event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
@@ -42,7 +43,7 @@ contract SafariBangStorage {
         LIONNESSY, // Lionness thinks she's a princess
         DOGGIE, // self explanatory canine slut
         PUSSYCAT, // self explanatory slut but feline
-        THICCHIPPO, // fat chick
+        THICCAPOTAMUS, // fat chick
         GAZELLA, // jumpy anxious female character
         MOUSEY, // Spouse material
         WOLVERINERASS, // wolf her in her ass i dunno man
@@ -101,7 +102,7 @@ contract SafariBangStorage {
         Specie.LIONNESSY, // Lionness thinks she's a princess
         Specie.DOGGIE, // self explanatory canine slut
         Specie.PUSSYCAT, // self explanatory slut but feline
-        Specie.THICCHIPPO, // fat chick
+        Specie.THICCAPOTAMUS, // fat chick
         Specie.GAZELLA, // jumpy anxious female character
         Specie.MOUSEY, // Spouse material
         Specie.WOLVERINERASS, // wolf her in her ass i dunno man
