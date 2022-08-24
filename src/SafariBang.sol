@@ -71,14 +71,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
 
         // console.log("Minting => ", currId);
 
-        emit Log("createAnimal(): Before Total Supply Check");
-
         if (currId > TOTAL_SUPPLY) {
             console.log("ERROR: MAX SUPPLY");
             revert MaxSupply();
         }
-
-        emit Log("createAnimal(): Before _safeMint()");
 
         _safeMint(to, currId);
 
@@ -104,15 +100,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             }
         }
 
-        emit Log("Past while loop");
-
         Position memory position = Position({
             animalId: currId,
             row: row,
             col: col
         });
-
-        emit Log("After create Position");
 
         Animal memory wipAnimal = Animal({
             animalType: to == address(this) ? AnimalType
@@ -129,8 +121,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             gender: s_randomWords[0] % 2 == 0 ? true : false,
             owner: to
         });
-
-        emit Log("After create Animal");
 
         // only Animals have quiver, WILD_ANIMALS do not belong in a quiver
         if (wipAnimal.owner != address(this)) {

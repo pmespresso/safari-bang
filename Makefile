@@ -40,6 +40,10 @@ deploy-anvil :; @forge script script/${contract}.s.sol:Deploy${contract} --rpc-u
 
 deploy-all :; make deploy-${network} contract=APIConsumer && make deploy-${network} contract=KeepersCounter && make deploy-${network} contract=PriceFeedConsumer && make deploy-${network} contract=VRFConsumerV2
 
-rand-mumbai :; @cast send ${address} --rpc-url ${MUMBAI_RPC_URL} --private-key=${PRIVATE_KEY} "getRandomWords()"
+rand-mumbai :; @cast send ${contract} --rpc-url ${MUMBAI_RPC_URL} --private-key=${PRIVATE_KEY} "getRandomWords()"
 
-genesis-mumbai :; @cast send ${address} --rpc-url ${MUMBAI_RPC_URL} --private-key=${PRIVATE_KEY} --gas-limit=5000000 "mapGenesis(uint256)" 10
+genesis-mumbai :; @cast send ${contract} --rpc-url ${MUMBAI_RPC_URL} --private-key=${PRIVATE_KEY} --gas-limit=5000000 "mapGenesis(uint256)" 10
+
+mintTo-mumbai :; @cast send ${contract} --value=0.08ether --rpc-url ${MUMBAI_RPC_URL} --private-key=${SECONDARY_PRIVATE_KEY} "mintTo(address)" 0xB53e858cdBB8bd45FC0b647C6D84C8DE30c40Ff0 --gas-limit=1000000
+
+whereami-mumbai :; @cast call ${contract} --rpc-url ${MUMBAI_RPC_URL}  "playerToPosition(address)" ${player}
