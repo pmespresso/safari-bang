@@ -15,7 +15,7 @@ contract VRFConsumerV2 is VRFConsumerBaseV2 {
     LinkTokenInterface immutable LINKTOKEN;
 
     // Your subscription ID.
-    uint64 immutable s_subscriptionId;
+    uint64 public s_subscriptionId;
 
     // The gas lane to use, which specifies the maximum gas price to bump to.
     // For a list of available gas lanes on each network,
@@ -28,7 +28,7 @@ contract VRFConsumerV2 is VRFConsumerBaseV2 {
     // this limit based on the network that you select, the size of the request,
     // and the processing of the callback request in the fulfillRandomWords()
     // function.
-    uint32 immutable s_callbackGasLimit = 200000;
+    uint32 immutable s_callbackGasLimit = 2_500_000;
 
     // The default is 3, but you can set this higher.
     uint16 immutable s_requestConfirmations = 3;
@@ -39,9 +39,10 @@ contract VRFConsumerV2 is VRFConsumerBaseV2 {
 
     uint256[] public s_randomWords;
     uint256 public s_requestId;
-    address s_owner;
+    address public s_owner;
 
     event ReturnedRandomness(uint256[] randomWords);
+    event Constructed(address owner, uint64 subscriptionId);
 
     /**
      * @notice Constructor inherits VRFConsumerBaseV2
@@ -61,6 +62,8 @@ contract VRFConsumerV2 is VRFConsumerBaseV2 {
         s_keyHash = keyHash;
         s_owner = msg.sender;
         s_subscriptionId = subscriptionId;
+
+        emit Constructed(s_owner, s_subscriptionId);
     }
 
     /**
@@ -95,5 +98,13 @@ contract VRFConsumerV2 is VRFConsumerBaseV2 {
     modifier onlyOwner() {
         require(msg.sender == s_owner);
         _;
+    }
+
+    function setSubscriptionId(uint64 subId) public onlyOwner {
+        s_subscriptionId = subId;
+    }
+
+    function setOwner(address owner) public onlyOwner {
+        s_owner = owner;
     }
 }

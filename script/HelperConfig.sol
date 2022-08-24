@@ -35,12 +35,12 @@ contract HelperConfig {
             oracle: 0xc57B33452b4F7BB189bB5AfaE9cc4aBa1f7a4FD8, // Oracle
             jobId: "6b88e0402e5d415eb946e528b8e0c7ba", // Keeper
             chainlinkFee: 1e17,
-            link: 	0x326C977E6efc84E512bB9C30f76E30c160eD06FB,
+            link: 0x326C977E6efc84E512bB9C30f76E30c160eD06FB,
             updateInterval: 60, // Keeper (in seconds)
             priceFeed: 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e, // ETH / USD
             subscriptionId: 1374, // VRF
             vrfCoordinator: 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed, // VRF
-            keyHash: 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc // VRF
+            keyHash: 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f // VRF
         });
     }
 
