@@ -15,11 +15,6 @@ import "./MultiOwnable.sol";
 import "./Storage.sol";
 import "./VRFConsumerV2.sol";
 
-error MintPriceNotPaid();
-error MaxSupply();
-error NonExistentTokenUri();
-error WithdrawTransfer();
-
 contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage, VRFConsumerV2 {
     using Strings for uint256;
 
@@ -39,6 +34,16 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         baseURI = _baseURI;
 
         _transferSuperOwnership(msg.sender);
+    }
+
+    /**
+        Set the new Minting phase
+        Once the minting phase is past, mintTo closes and the isGameInPlay should be true;
+     */
+    function rebirth() public onlySuperOwner {
+        mintingPeriodStartTime = block.timestamp;
+        isGameInPlay = false;
+        emit Rebirth(mintingPeriodStartTime);
     }
 
     /**
@@ -71,14 +76,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
 
         // console.log("Minting => ", currId);
 
-        emit Log("createAnimal(): Before Total Supply Check");
-
         if (currId > TOTAL_SUPPLY) {
             console.log("ERROR: MAX SUPPLY");
             revert MaxSupply();
         }
-
-        emit Log("createAnimal(): Before _safeMint()");
 
         _safeMint(to, currId);
 
@@ -104,15 +105,11 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             }
         }
 
-        emit Log("Past while loop");
-
         Position memory position = Position({
             animalId: currId,
             row: row,
             col: col
         });
-
-        emit Log("After create Position");
 
         Animal memory wipAnimal = Animal({
             animalType: to == address(this) ? AnimalType
@@ -130,8 +127,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             owner: to
         });
 
-        emit Log("After create Animal");
-
         // only Animals have quiver, WILD_ANIMALS do not belong in a quiver
         if (wipAnimal.owner != address(this)) {
             quiver[to].push(wipAnimal);
@@ -145,7 +140,45 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             playerToPosition[to] = position;
         }
 
+        isPendingAction[wipAnimal.owner] = true;
+
         return wipAnimal.id;
+    }
+
+    /**
+        After each turn, you roll an X sided die
+        The corresponding animalId's owner gets to move next, if they exist and havne't gone yet.
+     */
+    function randPickNextPlayer() public onlyCurrentPlayer {
+        require(allPlayers.length >= 2, "Needs to be at least 2 players to play.");
+        address nextPlayer;
+
+        uint256 i = 0;
+
+        while(nextPlayer == address(0)) {
+            require(s_randomWords.length > 0 && s_randomWords[i] != 0, "Randomness must be fulfilled");
+            uint numerator = sqrt(s_randomWords[i]);
+
+            console.log("randPickNextPlayer()::numerator: ", numerator);
+
+            uint8 nextIndex = uint8(numerator % allPlayers.length);
+            address potentialNextGuy = allPlayers[nextIndex];
+
+            console.log("randPickNextPlayer()::nextIndex: ", nextIndex);
+
+            if (potentialNextGuy != address(0) && isPendingAction[potentialNextGuy]) {
+                nextPlayer = potentialNextGuy;
+            } else {
+                i = (i + 1) % s_randomWords.length;
+            }
+        }
+        
+        whosTurnNext = nextPlayer;
+        isPendingAction[msg.sender] = false;
+    }
+
+    function getAllPlayers() public returns (address[] memory) {
+        return allPlayers;
     }
 
     /** 
@@ -153,7 +186,10 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
     @param direction up, down, left, or right.
     @param howManySquares usually 1, only flee() will set it to 3
     */
-    function move(Direction direction, uint8 howManySquares) public returns (Position memory newPosition) {
+    function move(Direction direction, uint8 howManySquares) onlyCurrentPlayer public returns (Position memory newPosition) {
+        require(isPendingAction[msg.sender] == true, "This player has no moves left");
+        require(whosTurnNext == msg.sender, "It is not your turn!");
+
         Position memory currentPosition = playerToPosition[msg.sender];
 
         console.log("Before move(): Moves remaining ", msg.sender, " - ", movesRemaining[msg.sender]);
@@ -162,6 +198,7 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         require(movesRemaining[msg.sender] > 0, "You are out of moves");
 
         movesRemaining[msg.sender] -= 1;
+        isPendingAction[msg.sender] = false;
 
         if (direction == Direction.Up) {
             require(safariMap[currentPosition.row - howManySquares][currentPosition.col] == 0, "can only use move on empty square");
@@ -283,7 +320,9 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         If succeed, take the square and the animal goes into your quiver. 
         If fail, you lose the animal and you're forced to use the next animal in your quiver, or mint a new one if you don't have one, or wait till the next round if there are no more animals to mint.
      */
-    function fight(Direction direction) external returns (Position memory newPosition) {
+    function fight(Direction direction) external onlyCurrentPlayer returns (Position memory newPosition) {
+
+
         Animal[] memory challengerQuiver = getQuiver(msg.sender);
         console.log("challenger quiver legnth: ", challengerQuiver.length);
         Animal memory challenger = challengerQuiver[0];
@@ -301,12 +340,6 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         Animal memory theGuyGettingFought = idToAnimal[theGuyGettingFoughtId];
 
         emit FightAttempt(challenger.owner, theGuyGettingFought.owner);
-
-        // VRF gen random number
-        getRandomWords();
-        
-        console.log("randomWords[1]: ", s_randomWords[1]);
-        console.log("randomWords[1] / 1e18: ", s_randomWords[1] / 1e70);
 
         // apply multiplier based on delta of aggression, speed, strength, size
         uint multiplier = (
@@ -352,40 +385,49 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
     /**
         @dev Fuck an animal and maybe you can conceive (mint) a baby animal to your quiver.
      */
-    function fuck(Direction direction) external returns (Position memory newPosition) {
+    function fuck(Direction direction) external onlyCurrentPlayer returns (bool won, Position memory newPosition) {
+        require(movesRemaining[msg.sender] >= 1, "You have no remaining moves");
+        require(whosTurnNext == msg.sender, "It ain't your turn, guy");
+        require(s_randomWords.length > 0, "Randomness must be fulfilled already.");
         // load player's animal
-        Animal[] memory fuckerQuiver = getQuiver(msg.sender);
+        Animal[] memory fuckerQuiver = getQuiver(whosTurnNext);
         Animal memory fucker = fuckerQuiver[0];
-        Position memory challengerPos = playerToPosition[msg.sender];
+        
+        console.log("fucker.id => ", fucker.id);
+        console.log("fucker.owner => ", fucker.owner);
+
+        Position memory challengerPos = playerToPosition[whosTurnNext];
 
         (uint8 rowToCheck, uint8 colToCheck) = _getCoordinatesToCheck(challengerPos.row, challengerPos.col, direction, 1);
 
         // check there is a wild animal there
         require(!_checkIfEmptyCell(rowToCheck, colToCheck), "Cannot try to fuck on empty square");
+
+        console.log("===== Map =====");
+        console.log(safariMap[challengerPos.row - 1][challengerPos.col - 1], safariMap[challengerPos.row - 1][challengerPos.col], safariMap[challengerPos.row - 1][challengerPos.col + 1]);
+        console.log(safariMap[challengerPos.row][challengerPos.col - 1], safariMap[challengerPos.row][challengerPos.col], safariMap[challengerPos.row][challengerPos.col + 1]);
+        console.log(safariMap[challengerPos.row + 1][challengerPos.col - 1], safariMap[challengerPos.row + 1][challengerPos.col], safariMap[challengerPos.row + 1][challengerPos.col + 1]);
+        console.log("===============");
         
         uint256 fuckeeId = safariMap[rowToCheck][colToCheck];
         Animal memory fuckee = idToAnimal[fuckeeId];
 
-        // TODO: check is heterosexual
+        console.log("fuckee.id => ", fuckee.id);
+        console.log("fuckee.owner => ", fuckee.owner);
+        
+        require(fucker.owner != fuckee.owner, "Can't fuck yourself, mate");
         // require(fuckee.gender != fucker.gender, "Cannot impregnate same sex animal");
 
-        emit FuckAttempt(fucker.owner, fuckee.owner);
-
-        // VRF gen random number
-        getRandomWords();
-
-        console.log("randomWords[0]: ", s_randomWords[0]);
-        console.log("randomWords[0] / 1e18: ", s_randomWords[0] / 1e70);
+        emit FuckAttempt(whosTurnNext, fuckee.owner);
 
         // apply multiplier based on libido and fertility
-        uint multiplier = fucker.libido * fuckee.fertility * (s_randomWords[0] / 1e70);
+        uint multiplier = (fucker.libido * fuckee.fertility / sqrt(s_randomWords[0] / 1e73)) % 100;
 
         console.log("muliplier: ", multiplier);
 
-        // TODO: sigmoid have baby or no?
         if (multiplier > 50) {
             // If success, move animal to fucker's quiver mint new baby and move into the space
-            giveBirth(fucker.owner);
+            uint idOfNewBaby = giveBirth(fucker.owner);
 
             quiver[fucker.owner].push(fuckee);
             deleteFirstAnimalFromQuiver(fuckee.owner, fuckee.id);
@@ -399,14 +441,27 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
                 movesRemaining[fucker.owner] -= 1;
             }
 
-            emit FuckSuccess(fucker.owner, fuckee.owner);
+            emit FuckSuccess(fucker.owner, idOfNewBaby);
             
-            return newPosition;
+            return (true, newPosition);
         } else {
             // If fail, replace from quiver
             deleteFirstAnimalFromQuiver(fucker.owner, fucker.id);
-            movesRemaining[fucker.owner] -= 1;
-            return challengerPos;
+            return (false, challengerPos);
+        }
+    }
+
+    // Babylonian method same as Uniswap uses
+    function sqrt(uint y) internal pure returns (uint z) {
+        if (y > 3) {
+            z = y;
+            uint x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
         }
     }
 
@@ -538,33 +593,29 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             }
         }
         
+        isGameInPlay = false;
         return true;
     }
 
     function deleteFirstAnimalFromQuiver(address who, uint id) internal {
-        console.log("quiver[who].length ", quiver[who].length);
         Position memory position = idToPosition[id];
 
         // You're out of animals, remove from map and burn
         if (who == address(this) || quiver[who].length <= 1) {
-            console.log("Time to wipe and burn: ", id);
-            console.log("Position of burnable", position.row, position.col);
-
             delete idToAnimal[id];
             delete idToPosition[id];
             delete safariMap[position.row][position.col];
             delete playerToPosition[who];
             delete quiver[who];
             delete movesRemaining[who];
-            // delete ownerOf[id]; this is what _burn does
-            
-            console.log("Burning: ", id);
+
             _burn(id);
+            
             emit AnimalBurnedAndRemovedFromCell(id, position.row, position.col);
         } else {
             Animal memory deadAnimal = quiver[who][0];
             
-            console.log("Burning: ", deadAnimal.id);
+            // console.log("Burning: ", deadAnimal.id);
             _burn(deadAnimal.id);
 
             // delete first animal in quiver, replace with last one
@@ -572,13 +623,13 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
             quiver[who].pop();
 
             Animal memory nextUp = quiver[who][0];
-            console.log("next up new position: ", position.row, position.col);
+            // console.log("next up new position: ", position.row, position.col);
             idToPosition[nextUp.id] = position;
             idToAnimal[nextUp.id] = nextUp;
             safariMap[position.row][position.col] = nextUp.id;
                         
-            console.log("Next up: ", nextUp.id);
-            console.log("New Quiver length: ", quiver[who].length);
+            // console.log("Next up: ", nextUp.id);
+            // console.log("New Quiver length: ", quiver[who].length);
 
             emit AnimalReplacedFromQuiver(nextUp.id, position.row, position.col);
         }
@@ -595,16 +646,31 @@ contract SafariBang is ERC721, MultiOwnable, IERC721Receiver, SafariBangStorage,
         @param to address of who to mint the character to
      */
     function mintTo(address to) public payable returns (uint256) {
-        emit Log("Mint To");
         if (msg.value < MINT_PRICE) {
             revert MintPriceNotPaid();
         }
 
-        emit Log("About to call createAnimal");
+        if (mintingPeriodStartTime + 5 minutes <= block.timestamp) {
+            isGameInPlay = true;
+            
+            revert MintingPeriodOver();
+        }
 
         createAnimal(to);
+        addPlayer(to);
 
         return currentTokenId + 1;
+    }
+
+    function addPlayer(address who) internal {
+        for (uint i = 0; i < allPlayers.length; i++) {
+            if (allPlayers[i] == who) {
+                return;
+            }
+        }
+
+        allPlayers.push(who);
+        emit PlayerAdded(who, allPlayers.length);
     }
 
     function getQuiver(address who) public view returns (Animal[] memory myQuiver){
