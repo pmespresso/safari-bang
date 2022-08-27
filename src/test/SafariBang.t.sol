@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 import "../Storage.sol";
@@ -29,9 +30,7 @@ contract SafariBangTest is Test {
         vrfCoordinator = new MockVRFCoordinatorV2();
         bytes32 keyHash = 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc;
         linkToken = new LinkToken();
-        console.log("link Token, ", address(linkToken));
         subId = vrfCoordinator.createSubscription();
-        console.log("subid: ", subId);
         vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
         
         safariBang = new SafariBang(
@@ -49,8 +48,6 @@ contract SafariBangTest is Test {
         safariBang.getRandomWords();
 
         vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
-
-        console.log("AFTER");
 
         vm.deal(Alice, 100 ether);
         vm.deal(Bob, 100 ether);
@@ -160,6 +157,44 @@ contract SafariBangTest is Test {
 
     function testMintPricePaid() public {
         safariBang.mintTo{value: 0.08 ether}(Alice);
+    }
+
+    function testMintWhileGameInSession() public {
+        vm.warp(0);
+
+        safariBang.rebirth();
+
+        uint256 newMintingPeriodStartTime = safariBang.mintingPeriodStartTime();
+
+        console.log("newMintingPeriodStartTime ", newMintingPeriodStartTime);
+
+        safariBang.mintTo{value: 0.08 ether}(Alice);
+
+        require(safariBang.balanceOf(Alice) == 1, "Alice should be able to mint during minting phase.");
+
+        // console.log("safariBang.isGameInPlay() ", safariBang.isGameInPlay());
+        vm.assume(safariBang.isGameInPlay() == true);
+        vm.warp(696969);
+        // console.log("safariBang.isGameInPlay() ", safariBang.isGameInPlay());
+        vm.startPrank(Bob);
+
+        // console.log(abi.encodeWithSelector(SafariBangStorage.MintingPeriodOver.selector));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(SafariBangStorage.MintingPeriodOver.selector)
+        );
+    
+        (bool status, bytes memory returndata) = address(safariBang).call{value: 0.08 ether}(abi.encodePacked(
+            safariBang.mintTo.selector, abi.encode(Bob)
+        ));
+
+        console.log("status ", status);
+        // console.log("returndata ", returndata);
+
+        string memory returnString = abi.decode(returndata, (string));
+        assertTrue(!status);
+        console.log("returnString ", returnString);
+        // require(safariBang.mintingPeriodStartTime() == newMintingPeriodStartTime, "Minting period should not change till the next asteroid & rebirth.");
     }
 
     function testMintTo() public {
