@@ -13,7 +13,7 @@ install :; forge install smartcontractkit/chainlink-brownie-contracts && forge i
 # Update Dependencies
 update:; forge update
 
-build:; forge build
+build:; forge build --via-ir --optimize
 
 test :; forge test 
 

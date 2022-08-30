@@ -24,8 +24,8 @@ contract SafariBangStorage {
     event FuckSuccess(address fucker, uint newlyMinted);
     event ChallengerWonFight(address victor, address loser, uint8 newChallengerRow, uint8 newChallengerCol);
     event ChallengerLostFight(address victor, address loser, uint8 newChallengerRow, uint8 newChallengerCol);
-    event AnimalReplacedFromQuiver(uint indexed id, uint8 indexed row, uint8 indexed col);
-    event AnimalBurnedAndRemovedFromCell(uint indexed id, uint8 indexed row, uint8 indexed col);
+    event AnimalReplacedFromQuiver(uint indexed id, address indexed owner, uint8 row, uint8  col);
+    event AnimalBurnedAndRemovedFromCell(uint indexed id, address indexed owner, uint8  row, uint8 col);
     event AsteroidDeathCount(uint indexed survivors, uint indexed dead, uint indexed timestamp);
     event Rebirth(uint256 newMintingPeriodStartTime);
     event PlayerAdded(address who, uint totalPlayersCount);
