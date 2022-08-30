@@ -35,6 +35,11 @@ contract VRFConsumerV2Test is Test {
             address(linkToken),
             keyHash
         );
+
+        vrfCoordinator.addConsumer(subId, address(vrfConsumer));
+
+        // vrfCoordinator.requestRandomWords();
+        // vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
     }
 
     function testCanRequestRandomness() public {

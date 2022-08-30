@@ -172,8 +172,13 @@ contract SafariBangTest is Test {
 
         require(safariBang.balanceOf(Alice) == 1, "Alice should be able to mint during minting phase.");
 
-        // console.log("safariBang.isGameInPlay() ", safariBang.isGameInPlay());
-        vm.assume(safariBang.isGameInPlay() == true);
+        uint256 slot = stdstore
+            .target(address(safariBang))
+            .sig("isGameInPlay()")
+            .find();
+
+        vm.store(address(safariBang), bytes32(slot), bytes32(uint(1)));
+
         vm.warp(696969);
         // console.log("safariBang.isGameInPlay() ", safariBang.isGameInPlay());
         vm.startPrank(Bob);
@@ -183,17 +188,19 @@ contract SafariBangTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(SafariBangStorage.MintingPeriodOver.selector)
         );
+
+        safariBang.mintTo{value: 0.08 ether}(Bob);
     
-        (bool status, bytes memory returndata) = address(safariBang).call{value: 0.08 ether}(abi.encodePacked(
-            safariBang.mintTo.selector, abi.encode(Bob)
-        ));
+        // (bool status, bytes memory returndata) = address(safariBang).call{value: 0.08 ether}(abi.encodePacked(
+        //     safariBang.mintTo.selector, abi.encode(Bob)
+        // ));
 
-        console.log("status ", status);
-        // console.log("returndata ", returndata);
+        // console.log("status ", status);
+        // // console.log("returndata ", returndata);
 
-        string memory returnString = abi.decode(returndata, (string));
-        assertTrue(!status);
-        console.log("returnString ", returnString);
+        // string memory returnString = abi.decode(returndata, (string));
+        // assertTrue(!status);
+        // console.log("returnString ", returnString);
         // require(safariBang.mintingPeriodStartTime() == newMintingPeriodStartTime, "Minting period should not change till the next asteroid & rebirth.");
     }
 
