@@ -24,19 +24,9 @@ contract KeepersOMFGTest is Test {
 
         HelperConfig helperConfig = new HelperConfig();
 
-        (
-            ,
-            ,
-            ,
-            address link,
-            ,
-            ,
-            ,
-            ,
-            bytes32 keyHash
-        ) = helperConfig.activeNetworkConfig();
+        (, , , address link, , , , , bytes32 keyHash) = helperConfig
+            .activeNetworkConfig();
 
-        
         vrfCoordinator = new MockVRFCoordinatorV2();
         uint64 subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, 1 * 10**18);
@@ -54,7 +44,10 @@ contract KeepersOMFGTest is Test {
         vrfCoordinator.addConsumer(subId, address(safariBang));
 
         safariBang.getRandomWords();
-        vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
+        vrfCoordinator.fulfillRandomWords(
+            safariBang.s_requestId(),
+            address(safariBang)
+        );
 
         cheats.warp(staticTime);
 
@@ -68,7 +61,7 @@ contract KeepersOMFGTest is Test {
      */
     // function testIsSuperOwnerOfSafariBang() public {
     //     address superOwner = safariBang.superOwner();
-        
+
     //     require(superOwner == address(asteroidKeeper), "Keeper contract should be super owner of Safari Bang");
     // }
 
@@ -81,11 +74,11 @@ contract KeepersOMFGTest is Test {
     function testClearsSafariMapStateWithAllEmptyQuivers() public {
         safariBang.mapGenesis(10);
 
-        uint currentTokenId = safariBang.currentTokenId();
-        
+        uint256 currentTokenId = safariBang.currentTokenId();
+
         // console.log("BEFORE UPKEEP");
         // before upkeep, every id should occupy a cell
-        for (uint i = 1; i <= currentTokenId; i++) {
+        for (uint256 i = 1; i <= currentTokenId; i++) {
             (, uint8 row, uint8 col) = safariBang.idToPosition(i);
 
             assert(!(row == 0 && col == 0));
@@ -93,18 +86,20 @@ contract KeepersOMFGTest is Test {
 
         // Upkeep
         // cheats.expectEmit(false, true, true, true);
-        uint balanceBefore = safariBang.balanceOf(address(safariBang));
+        uint256 balanceBefore = safariBang.balanceOf(address(safariBang));
         console.log("Balance before: ", balanceBefore);
         cheats.warp(staticTime + INTERVAL + 1);
         asteroidKeeper.performUpkeep("0x");
 
         // console.log("AFTER UPKEEP");
-        for (uint i = 1; i <= currentTokenId; i++) {
-            (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(i);
-            
+        for (uint256 i = 1; i <= currentTokenId; i++) {
+            (uint256 animalId, uint8 row, uint8 col) = safariBang.idToPosition(
+                i
+            );
+
             require(row == 0 && col == 0, "Position should be cleared");
         }
-        uint balanceAfter = safariBang.balanceOf(address(safariBang));
+        uint256 balanceAfter = safariBang.balanceOf(address(safariBang));
         console.log("Balance After: ", balanceAfter);
 
         assert(balanceBefore > balanceAfter);
@@ -125,25 +120,44 @@ contract KeepersOMFGTest is Test {
         asteroidKeeper.performUpkeep("0x");
 
         // For Wild Animals, check that they are wiped
-        for (uint r = 0; r <= 64; r++) {
-            for (uint c = 0; c <= 64; c++) {
-                uint id = safariBang.safariMap(r, c);
+        for (uint256 r = 0; r <= 64; r++) {
+            for (uint256 c = 0; c <= 64; c++) {
+                uint256 id = safariBang.safariMap(r, c);
                 if (id == 0) {
                     continue;
                 }
-                (,,,,,,,,,,,address owner) = safariBang.idToAnimal(id);
+                (, , , , , , , , , , , address owner) = safariBang.idToAnimal(
+                    id
+                );
 
                 if (owner == address(safariBang)) {
-                    require(safariBang.ownerOf(id) == address(safariBang), "NFT should be owned by owner");
-                    require(r == 0 && c == 0, "Position is cleared only if Wild Animal");
+                    require(
+                        safariBang.ownerOf(id) == address(safariBang),
+                        "NFT should be owned by owner"
+                    );
+                    require(
+                        r == 0 && c == 0,
+                        "Position is cleared only if Wild Animal"
+                    );
                 } else {
                     // Domestic
-                    uint balanceAfter = safariBang.balanceOf(Alice);
-                    SafariBang.Animal[] memory quiver = safariBang.getQuiver(owner);
+                    uint256 balanceAfter = safariBang.balanceOf(Alice);
+                    SafariBang.Animal[] memory quiver = safariBang.getQuiver(
+                        owner
+                    );
 
-                    require(balanceAfter == 2, "Alice should have burned one animal");
-                    require(quiver.length == 2, "Alice should have 2 in quiver after asteroid");
-                    require(id > 0, "Should have been replaced by new animal from quiver");
+                    require(
+                        balanceAfter == 2,
+                        "Alice should have burned one animal"
+                    );
+                    require(
+                        quiver.length == 2,
+                        "Alice should have 2 in quiver after asteroid"
+                    );
+                    require(
+                        id > 0,
+                        "Should have been replaced by new animal from quiver"
+                    );
                 }
             }
         }

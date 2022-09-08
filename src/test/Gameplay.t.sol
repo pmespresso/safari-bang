@@ -47,7 +47,10 @@ contract GameplayTest is Test {
         vrfCoordinator.addConsumer(subId, address(safariBang));
 
         safariBang.getRandomWords();
-        vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
+        vrfCoordinator.fulfillRandomWords(
+            safariBang.s_requestId(),
+            address(safariBang)
+        );
 
         vm.deal(Alice, 100 ether);
         vm.deal(Bob, 100 ether);
@@ -63,7 +66,10 @@ contract GameplayTest is Test {
         safariBang.mintTo{value: 0.08 ether}(Daisy);
         safariBang.mintTo{value: 0.08 ether}(Emily);
 
-        require(address(safariBang).balance >= 0.5 ether, "safari bang should have collected Ether from mints");
+        require(
+            address(safariBang).balance >= 0.5 ether,
+            "safari bang should have collected Ether from mints"
+        );
     }
 
     function testPickRandPlayer() public {
@@ -73,8 +79,12 @@ contract GameplayTest is Test {
             .target(address(safariBang))
             .sig("whosTurnNext()")
             .find();
-        
-        vm.store(address(safariBang), bytes32(slotA), bytes32(abi.encode(Alice)));
+
+        vm.store(
+            address(safariBang),
+            bytes32(slotA),
+            bytes32(abi.encode(Alice))
+        );
 
         address whosNextBefore = safariBang.whosTurnNext();
         address[] memory allPlayers = safariBang.getAllPlayers();
@@ -86,7 +96,10 @@ contract GameplayTest is Test {
         address whosNextAfter = safariBang.whosTurnNext();
         console.log("whosNextAfter: ", whosNextAfter);
 
-        require(whosNextBefore != whosNextAfter, "whosNext should have changed.");
+        require(
+            whosNextBefore != whosNextAfter,
+            "whosNext should have changed."
+        );
 
         vm.stopPrank();
 
@@ -96,7 +109,11 @@ contract GameplayTest is Test {
 
         address whosNextAfterAfter = safariBang.whosTurnNext();
 
-        require(whosNextBefore != whosNextAfter && whosNextBefore != whosNextAfterAfter, "whosNext should not repeat.");
+        require(
+            whosNextBefore != whosNextAfter &&
+                whosNextBefore != whosNextAfterAfter,
+            "whosNext should not repeat."
+        );
     }
 
     /**
@@ -113,15 +130,27 @@ contract GameplayTest is Test {
         address whosNext = safariBang.whosTurnNext();
         vm.startPrank(whosNext);
 
-        (uint animalId, uint8 row, uint8 col) = safariBang.playerToPosition(whosNext);
+        (uint256 animalId, uint8 row, uint8 col) = safariBang.playerToPosition(
+            whosNext
+        );
 
         // Case 1: Go Up
         vm.assume(safariBang.safariMap(row - 1, col) == 0);
 
-        SafariBang.Position memory whosNextNewPosition = safariBang.move(SafariBangStorage.Direction.Up, 1);
+        SafariBang.Position memory whosNextNewPosition = safariBang.move(
+            SafariBangStorage.Direction.Up,
+            1
+        );
 
-        require(whosNextNewPosition.row == row - 1 && whosNextNewPosition.col == col, "whosNext should have moved down up square");
-        require(safariBang.isPendingAction(whosNext) == false, "Whos Next should not be pending action after move.");
+        require(
+            whosNextNewPosition.row == row - 1 &&
+                whosNextNewPosition.col == col,
+            "whosNext should have moved down up square"
+        );
+        require(
+            safariBang.isPendingAction(whosNext) == false,
+            "Whos Next should not be pending action after move."
+        );
 
         safariBang.randPickNextPlayer();
         vm.stopPrank();
@@ -130,14 +159,25 @@ contract GameplayTest is Test {
         vm.startPrank(whosNext);
 
         // Case 2: Go left
-        (uint whosNextAnimalId, uint8 whosNextRow, uint8 whosNextCol) = safariBang.playerToPosition(whosNext);
+        (
+            uint256 whosNextAnimalId,
+            uint8 whosNextRow,
+            uint8 whosNextCol
+        ) = safariBang.playerToPosition(whosNext);
 
-        whosNextNewPosition = safariBang.move(SafariBangStorage.Direction.Left, 1);
+        whosNextNewPosition = safariBang.move(
+            SafariBangStorage.Direction.Left,
+            1
+        );
 
         console.log("whosNext New Row: ", whosNextNewPosition.row);
         console.log("whosNext New Col: ", whosNextNewPosition.col);
 
-        require(whosNextNewPosition.row == whosNextRow && whosNextNewPosition.col == whosNextCol - 1, "whosNext should have moved left 1 square");
+        require(
+            whosNextNewPosition.row == whosNextRow &&
+                whosNextNewPosition.col == whosNextCol - 1,
+            "whosNext should have moved left 1 square"
+        );
 
         vm.stopPrank();
 
@@ -146,7 +186,7 @@ contract GameplayTest is Test {
         // (uint charlieAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
 
         // SafariBang.Position memory charlieNewPosition = safariBang.move(SafariBangStorage.Direction.Right, 1);
-        
+
         // require(charlieNewPosition.row == charlieRow && charlieNewPosition.col == charlieCol + 1, "Charlie should have moved right 1 square");
         // vm.stopPrank();
 
@@ -155,7 +195,7 @@ contract GameplayTest is Test {
         // (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
 
         // SafariBang.Position memory daisyNewPosition = safariBang.move(SafariBangStorage.Direction.Down, 1);
-        
+
         // require(daisyNewPosition.row == daisyRow + 1 && daisyNewPosition.col == daisyCol, "Daisy should have moved down 1 square");
         // // Case 5: Out of Moves
         // vm.expectRevert(bytes("You are out of moves"));
@@ -163,10 +203,8 @@ contract GameplayTest is Test {
 
         // // Case 6: Wrap around the map
 
-
         // vm.stopPrank();
     }
-
 
     /**
         @dev Fuck as a defense mechanism
@@ -196,13 +234,17 @@ contract GameplayTest is Test {
         safariBang.randPickNextPlayer();
 
         address whosNext = safariBang.whosTurnNext();
-        
-        (uint whosNextAnimalId, uint8 whosNextRow, uint8 whosNextCol) = safariBang.playerToPosition(whosNext);
 
         (
-            , 
+            uint256 whosNextAnimalId,
+            uint8 whosNextRow,
+            uint8 whosNextCol
+        ) = safariBang.playerToPosition(whosNext);
+
+        (
             ,
-            , 
+            ,
+            ,
             uint256 whosNextAnimalSize,
             uint256 whosNextAnimalStrength,
             uint256 whosNextAnimalSpeed,
@@ -211,10 +253,12 @@ contract GameplayTest is Test {
             uint256 whosNextAnimalAggression,
             uint256 whosNextAnimalLibido,
             bool whosNextAnimalGender,
-            address whosNextOwner) = safariBang.idToAnimal(whosNextAnimalId);
-        (   , 
+            address whosNextOwner
+        ) = safariBang.idToAnimal(whosNextAnimalId);
+        (
             ,
-            , 
+            ,
+            ,
             uint256 fuckeeAnimalSize,
             uint256 fuckeeAnimalStrength,
             uint256 fuckeeAnimalSpeed,
@@ -223,17 +267,19 @@ contract GameplayTest is Test {
             uint256 fuckeeAnimalAggression,
             uint256 fuckeeAnimalLibido,
             bool fuckeeAnimalGender,
-            address fuckee) = safariBang.idToAnimal(3);
-        
-        uint fuckerBalanceBefore = safariBang.balanceOf(whosNext);
-        uint fuckeeBalanceBefore = safariBang.balanceOf(fuckee);
-            
+            address fuckee
+        ) = safariBang.idToAnimal(3);
+
+        uint256 fuckerBalanceBefore = safariBang.balanceOf(whosNext);
+        uint256 fuckeeBalanceBefore = safariBang.balanceOf(fuckee);
+
         // address fuckee = whosNext == Bob ? Emily : Bob;
         // put fuckee next to whosNext
         safariBang.godModePlacement(fuckee, 3, whosNextRow - 1, whosNextCol);
 
-        (uint fuckeeAnimalId, uint8 fuckeeRow, uint8 fuckeeCol) = safariBang.playerToPosition(fuckee);
-        
+        (uint256 fuckeeAnimalId, uint8 fuckeeRow, uint8 fuckeeCol) = safariBang
+            .playerToPosition(fuckee);
+
         // give whosNext's animal insane libido and Bob's animal insane fertility, make sure whosNext is female and bob is male
         whosNextAnimalLibido = 100;
         fuckeeAnimalFertility = 100;
@@ -251,28 +297,67 @@ contract GameplayTest is Test {
             fuckeeAnimalLibido,
             fuckeeAnimalGender
         );
-        
+
         vm.startPrank(whosNext);
 
-        (bool won, SafariBangStorage.Position memory newwhosNextPosition)= safariBang.fuck(SafariBangStorage.Direction.Up);
+        (
+            bool won,
+            SafariBangStorage.Position memory newwhosNextPosition
+        ) = safariBang.fuck(SafariBangStorage.Direction.Up);
 
-        uint fuckeeBalanceAfter = safariBang.balanceOf(fuckee);
-        uint fuckerBalanceAfter = safariBang.balanceOf(whosNext);
+        uint256 fuckeeBalanceAfter = safariBang.balanceOf(fuckee);
+        uint256 fuckerBalanceAfter = safariBang.balanceOf(whosNext);
 
-        (uint fuckeeNewAnimalId, uint8 fuckeeNewRow, uint8 fuckeeNewCol) = safariBang.playerToPosition(fuckee);
-        (uint fuckerNewAnimalId, uint8 fuckerNewRow, uint8 fuckerNewCol) = safariBang.
-            playerToPosition(whosNext);
+        (
+            uint256 fuckeeNewAnimalId,
+            uint8 fuckeeNewRow,
+            uint8 fuckeeNewCol
+        ) = safariBang.playerToPosition(fuckee);
+        (
+            uint256 fuckerNewAnimalId,
+            uint8 fuckerNewRow,
+            uint8 fuckerNewCol
+        ) = safariBang.playerToPosition(whosNext);
 
         if (won) {
-            require(fuckeeBalanceAfter == fuckeeBalanceBefore - 1, "Fuckee's animal should be burned.");
-            require(fuckerBalanceAfter == fuckerBalanceBefore + 1, "Fucker should have a brand new baby animal in her quiver.");
-            require(fuckeeNewRow == 0 && fuckeeNewCol == 0 && fuckeeNewAnimalId == 0, "Fuckee should not be on the map at all anymore after getting fucked with only one animal in the quiver.");
-            require(newwhosNextPosition.row == fuckeeRow && newwhosNextPosition.col == fuckeeCol, "whosNext should have moved into fuckee's old cell.");
+            require(
+                fuckeeBalanceAfter == fuckeeBalanceBefore - 1,
+                "Fuckee's animal should be burned."
+            );
+            require(
+                fuckerBalanceAfter == fuckerBalanceBefore + 1,
+                "Fucker should have a brand new baby animal in her quiver."
+            );
+            require(
+                fuckeeNewRow == 0 &&
+                    fuckeeNewCol == 0 &&
+                    fuckeeNewAnimalId == 0,
+                "Fuckee should not be on the map at all anymore after getting fucked with only one animal in the quiver."
+            );
+            require(
+                newwhosNextPosition.row == fuckeeRow &&
+                    newwhosNextPosition.col == fuckeeCol,
+                "whosNext should have moved into fuckee's old cell."
+            );
         } else {
-            require(fuckerBalanceAfter == fuckerBalanceBefore - 1, "Fucker's animal should be burned.");
-            require(fuckeeBalanceAfter == fuckeeBalanceBefore, "Fuckee's animal balance should be exactly as it was before.");
-            require(fuckerNewRow == 0 && fuckerNewCol == 0 && fuckerNewAnimalId == 0, "Fucker should not be on the map at all anymore after getting fucked with only one animal in the quiver.");
-            require(fuckeeRow == fuckeeNewRow && fuckeeCol == fuckeeNewCol, "Fuckee should not have moved at all.");
+            require(
+                fuckerBalanceAfter == fuckerBalanceBefore - 1,
+                "Fucker's animal should be burned."
+            );
+            require(
+                fuckeeBalanceAfter == fuckeeBalanceBefore,
+                "Fuckee's animal balance should be exactly as it was before."
+            );
+            require(
+                fuckerNewRow == 0 &&
+                    fuckerNewCol == 0 &&
+                    fuckerNewAnimalId == 0,
+                "Fucker should not be on the map at all anymore after getting fucked with only one animal in the quiver."
+            );
+            require(
+                fuckeeRow == fuckeeNewRow && fuckeeCol == fuckeeNewCol,
+                "Fuckee should not have moved at all."
+            );
         }
     }
 
@@ -306,37 +391,49 @@ contract GameplayTest is Test {
 
         require(whosNext != address(0), "Whos next should be a player");
 
-        (uint whosNextAnimalId, uint8 whosNextRow, uint8 whosNextCol) = safariBang.playerToPosition(whosNext);
-        (uint daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang.playerToPosition(Daisy);
+        (
+            uint256 whosNextAnimalId,
+            uint8 whosNextRow,
+            uint8 whosNextCol
+        ) = safariBang.playerToPosition(whosNext);
+        (uint256 daisyAnimalId, uint8 daisyRow, uint8 daisyCol) = safariBang
+            .playerToPosition(Daisy);
 
         // console.log("Daisy pos: ", daisyRow, daisyCol);
 
-        uint whosNextBalanceBefore = safariBang.balanceOf(whosNext);
-        uint daisyBalanceBefore = safariBang.balanceOf(Daisy);
+        uint256 whosNextBalanceBefore = safariBang.balanceOf(whosNext);
+        uint256 daisyBalanceBefore = safariBang.balanceOf(Daisy);
 
         console.log("whosNextBalanceBefore: ", whosNextBalanceBefore);
         console.log("daisyBalanceBefore: ", daisyBalanceBefore);
 
         // put daisy next to charlie
         safariBang.godModePlacement(Daisy, 6, whosNextRow, whosNextCol + 1);
-        
-        (uint daisyAnimalIdNew, uint8 daisyRowNew, uint8 daisyColNew) = safariBang.playerToPosition(Daisy);
-        
+
+        (
+            uint256 daisyAnimalIdNew,
+            uint8 daisyRowNew,
+            uint8 daisyColNew
+        ) = safariBang.playerToPosition(Daisy);
+
         console.log("whosNext pos: ", whosNextRow, whosNextCol);
         console.log("Daisy God Mode Placed: ", daisyRowNew, daisyColNew);
-        
+
         vm.startPrank(whosNext);
 
-        SafariBangStorage.Position memory whosNextNewPosition = safariBang.fight(SafariBangStorage.Direction.Right);
+        SafariBangStorage.Position memory whosNextNewPosition = safariBang
+            .fight(SafariBangStorage.Direction.Right);
 
-        uint whosNextBalanceAfter = safariBang.balanceOf(whosNext);
+        uint256 whosNextBalanceAfter = safariBang.balanceOf(whosNext);
 
         console.log("whosNextBalanceAfter => ", whosNextBalanceAfter);
 
-        require(whosNextBalanceAfter == whosNextBalanceBefore, "Winning a fight should not change your balance.");
+        require(
+            whosNextBalanceAfter == whosNextBalanceBefore,
+            "Winning a fight should not change your balance."
+        );
     }
 
-    
     /**
     @dev Flee as a defense mechanism
             Pseudocode below:
@@ -371,7 +468,9 @@ contract GameplayTest is Test {
         safariBang.godModePlacement(Daisy, 6, 10, 9);
         safariBang.godModePlacement(Emily, 7, 10, 11);
 
-        (, uint8 whosNextRow, uint8 whosNextCol) = safariBang.playerToPosition(whosNext);
+        (, uint8 whosNextRow, uint8 whosNextCol) = safariBang.playerToPosition(
+            whosNext
+        );
 
         console.log("whosNext current pos: ", whosNextRow, whosNextCol);
 
@@ -380,20 +479,36 @@ contract GameplayTest is Test {
         safariBang.flee();
 
         // expect Bob to be 3 squares from previous
-        (, uint8 whosNextNewRow, uint8 whosNextNewCol) = safariBang.playerToPosition(whosNext);
+        (, uint8 whosNextNewRow, uint8 whosNextNewCol) = safariBang
+            .playerToPosition(whosNext);
 
         console.log("whosNext new pos: ", whosNextNewRow, whosNextNewCol);
 
-        require(safariBang.movesRemaining(whosNext) == 0, "whosNext should be out of moves.");
+        require(
+            safariBang.movesRemaining(whosNext) == 0,
+            "whosNext should be out of moves."
+        );
 
         // if fleer moved at all
         if (whosNextRow != whosNextNewRow) {
-            require(whosNextNewRow > whosNextRow ? whosNextNewRow - whosNextRow == 3 : whosNextRow - whosNextNewRow == 3, "Bob should have moved 3 cells.");
-        } else if(whosNextCol != whosNextNewCol) {
-            require(whosNextNewCol > whosNextCol ? whosNextNewCol - whosNextCol == 3 : whosNextCol - whosNextNewCol == 3, "Bob should have moved 3 cells.");
+            require(
+                whosNextNewRow > whosNextRow
+                    ? whosNextNewRow - whosNextRow == 3
+                    : whosNextRow - whosNextNewRow == 3,
+                "Bob should have moved 3 cells."
+            );
+        } else if (whosNextCol != whosNextNewCol) {
+            require(
+                whosNextNewCol > whosNextCol
+                    ? whosNextNewCol - whosNextCol == 3
+                    : whosNextCol - whosNextNewCol == 3,
+                "Bob should have moved 3 cells."
+            );
         } else {
-            require(whosNextNewRow == whosNextRow && whosNextNewCol == whosNextCol, "Bob failed to flee, should stay in place.");
+            require(
+                whosNextNewRow == whosNextRow && whosNextNewCol == whosNextCol,
+                "Bob failed to flee, should stay in place."
+            );
         }
     }
-    
 }

@@ -21,7 +21,7 @@ snapshot :; forge snapshot
 
 slither :; slither ./src 
 
-format :; prettier --write src/**/*.sol && prettier --write src/*.sol
+format :; npx prettier --write src/**/*.sol && prettier --write src/*.sol
 
 # solhint should be installed globally
 lint :; solhint src/**/*.sol && solhint src/*.sol
@@ -33,7 +33,7 @@ deploy-rinkeby :; @forge script script/${contract}.s.sol:Deploy${contract} --rpc
 
 deploy-polygon :; @forge script script/${contract}.s.sol:Deploy${contract} --rpc-url ${POLYGON_RPC_URL}  --private-key ${PRIVATE_KEY} --broadcast --verify --etherscan-api-key ${POLYGONSCAN_API_KEY}  -vvvv
 
-deploy-mumbai :; @forge script script/${contract}.s.sol:Deploy${contract} --via-ir --rpc-url ${MUMBAI_RPC_URL}  --private-key ${PRIVATE_KEY} --broadcast --verify --optimize --optimizer-runs 200 --use 0.8.13 --etherscan-api-key ${POLYGONSCAN_API_KEY} -vvvv
+deploy-mumbai :; @forge script script/${contract}.s.sol:Deploy${contract} --via-ir --rpc-url ${MUMBAI_RPC_URL} --private-key ${PRIVATE_KEY} --gas-limit=7500000 --broadcast --verify --optimize --optimizer-runs 200 --use 0.8.16 --etherscan-api-key ${POLYGONSCAN_API_KEY} -vvvv
 
 # This is the private key of account from the mnemonic from the "make anvil" command
 deploy-anvil :; @forge script script/${contract}.s.sol:Deploy${contract} --rpc-url http://localhost:8545  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast 

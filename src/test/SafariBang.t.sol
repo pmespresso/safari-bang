@@ -32,7 +32,7 @@ contract SafariBangTest is Test {
         linkToken = new LinkToken();
         subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, FUND_AMOUNT);
-        
+
         safariBang = new SafariBang(
             "SafariBang",
             "SAFABA",
@@ -47,7 +47,10 @@ contract SafariBangTest is Test {
 
         safariBang.getRandomWords();
 
-        vrfCoordinator.fulfillRandomWords(safariBang.s_requestId(), address(safariBang));
+        vrfCoordinator.fulfillRandomWords(
+            safariBang.s_requestId(),
+            address(safariBang)
+        );
 
         vm.deal(Alice, 100 ether);
         vm.deal(Bob, 100 ether);
@@ -55,11 +58,12 @@ contract SafariBangTest is Test {
     }
 
     function testCreateAnimal() public {
-        uint new_guy_id = safariBang.createAnimal(Alice);
+        uint256 new_guy_id = safariBang.createAnimal(Alice);
 
-        (, 
+        (
             ,
-            uint256 id, 
+            ,
+            uint256 id,
             uint256 size,
             uint256 strength,
             uint256 speed,
@@ -68,7 +72,8 @@ contract SafariBangTest is Test {
             uint256 aggression,
             uint256 libido,
             bool gender,
-            ) = safariBang.idToAnimal(new_guy_id);
+
+        ) = safariBang.idToAnimal(new_guy_id);
 
         console.log("size: ", size);
         console.log("strength: ", strength);
@@ -92,29 +97,23 @@ contract SafariBangTest is Test {
 
         bytes32 currentTokenId = vm.load(address(safariBang), loc);
 
-        emit log_named_uint("next token id after genesis mint ", uint256(currentTokenId));
+        emit log_named_uint(
+            "next token id after genesis mint ",
+            uint256(currentTokenId)
+        );
 
         assertEq(uint256(currentTokenId), 80);
 
         // CASE 2: AnimalById check positions of animals by mapping(id => animal)
-        (, 
-            ,
-            uint256 id, 
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            address owner) = safariBang.idToAnimal(69);
-        
+        (, , uint256 id, , , , , , , , , address owner) = safariBang.idToAnimal(
+            69
+        );
+
         assertEq(id, 69);
         assertEq(owner, address(safariBang));
 
         // CASE 4: idToPosition
-        (uint animalId, uint8 row, uint8 col) = safariBang.idToPosition(69);
+        (uint256 animalId, uint8 row, uint8 col) = safariBang.idToPosition(69);
 
         // CASE 3: Animal by safariMap[][]
         uint256 idOfMyBoyAtRow0Col69 = safariBang.safariMap(row, col);
@@ -122,14 +121,16 @@ contract SafariBangTest is Test {
     }
 
     function testQuiver() public {
-        uint balance = Alice.balance;
+        uint256 balance = Alice.balance;
 
         safariBang.mapGenesis(10);
 
         vm.startPrank(address(safariBang));
 
         // SafariBang contract should have no quiver, i.e. Wild Animals don't belong in a quiver
-        SafariBang.Animal[] memory safariBangQuiver = safariBang.getQuiver(address(safariBang));
+        SafariBang.Animal[] memory safariBangQuiver = safariBang.getQuiver(
+            address(safariBang)
+        );
 
         assertEq(safariBangQuiver.length, 0);
 
@@ -141,7 +142,9 @@ contract SafariBangTest is Test {
         // mint one for Alice
         safariBang.mintTo{value: 0.08 ether}(Alice);
 
-        SafariBang.Animal[] memory userQuiver = safariBang.getQuiver(address(Alice));
+        SafariBang.Animal[] memory userQuiver = safariBang.getQuiver(
+            address(Alice)
+        );
 
         // quiver of user should have one Animal
         assertEq(userQuiver.length, 1);
@@ -161,7 +164,7 @@ contract SafariBangTest is Test {
 
     function testMintWhileGameInSession() public {
         vm.warp(0);
-        
+
         safariBang.rebirth();
 
         uint256 newMintingPeriodStartTime = safariBang.mintingPeriodStartTime();
@@ -170,14 +173,17 @@ contract SafariBangTest is Test {
 
         safariBang.mintTo{value: 0.08 ether}(Alice);
 
-        require(safariBang.balanceOf(Alice) == 1, "Alice should be able to mint during minting phase.");
+        require(
+            safariBang.balanceOf(Alice) == 1,
+            "Alice should be able to mint during minting phase."
+        );
 
         uint256 slot = stdstore
             .target(address(safariBang))
             .sig("isGameInPlay()")
             .find();
 
-        vm.store(address(safariBang), bytes32(slot), bytes32(uint(1)));
+        vm.store(address(safariBang), bytes32(slot), bytes32(uint256(1)));
 
         vm.warp(696969);
         // console.log("safariBang.isGameInPlay() ", safariBang.isGameInPlay());
@@ -190,7 +196,7 @@ contract SafariBangTest is Test {
         );
 
         safariBang.mintTo{value: 0.08 ether}(Bob);
-    
+
         // (bool status, bytes memory returndata) = address(safariBang).call{value: 0.08 ether}(abi.encodePacked(
         //     safariBang.mintTo.selector, abi.encode(Bob)
         // ));
@@ -209,31 +215,71 @@ contract SafariBangTest is Test {
         safariBang.mintTo{value: 0.08 ether}(Bob);
         safariBang.mintTo{value: 0.08 ether}(Charlie);
 
-        (uint aliceCurrentAnimalId, uint8 aliceRow, uint8 aliceCol) = safariBang.playerToPosition(Alice);
-        (uint bobCurrentAnimalId, uint8 bobRow, uint8 bobCol) = safariBang.playerToPosition(Bob);
-        (uint charlieCurrentAnimalId, uint8 charlieRow, uint8 charlieCol) = safariBang.playerToPosition(Charlie);
-        
-        uint _aliceCurrentAnimalId = safariBang.safariMap(aliceRow, aliceCol);
-        uint _bobCurrentAnimalId = safariBang.safariMap(bobRow, bobCol);
-        uint _charlieCurrentAnimalId = safariBang.safariMap(charlieRow, charlieCol);
+        (
+            uint256 aliceCurrentAnimalId,
+            uint8 aliceRow,
+            uint8 aliceCol
+        ) = safariBang.playerToPosition(Alice);
+        (uint256 bobCurrentAnimalId, uint8 bobRow, uint8 bobCol) = safariBang
+            .playerToPosition(Bob);
+        (
+            uint256 charlieCurrentAnimalId,
+            uint8 charlieRow,
+            uint8 charlieCol
+        ) = safariBang.playerToPosition(Charlie);
+
+        uint256 _aliceCurrentAnimalId = safariBang.safariMap(
+            aliceRow,
+            aliceCol
+        );
+        uint256 _bobCurrentAnimalId = safariBang.safariMap(bobRow, bobCol);
+        uint256 _charlieCurrentAnimalId = safariBang.safariMap(
+            charlieRow,
+            charlieCol
+        );
 
         require(aliceRow >= 0 && aliceCol >= 0, "Alice position must be >= 0");
-        require(aliceRow <= 127 && aliceCol <= 127, "Alice position must be <= Grid Size");
-        require(_aliceCurrentAnimalId == aliceCurrentAnimalId, "Alice current animal Id in safariMap should match in playerToPosition");
+        require(
+            aliceRow <= 127 && aliceCol <= 127,
+            "Alice position must be <= Grid Size"
+        );
+        require(
+            _aliceCurrentAnimalId == aliceCurrentAnimalId,
+            "Alice current animal Id in safariMap should match in playerToPosition"
+        );
 
         require(bobRow >= 0 && bobCol >= 0, "Bob position must be >= 0");
-        require(bobRow <= 127 && bobCol <= 127, "Bob position must be <= Grid Size");
-        require(_bobCurrentAnimalId == bobCurrentAnimalId, "Bob current animal Id in safariMap should match in playerToPosition");
+        require(
+            bobRow <= 127 && bobCol <= 127,
+            "Bob position must be <= Grid Size"
+        );
+        require(
+            _bobCurrentAnimalId == bobCurrentAnimalId,
+            "Bob current animal Id in safariMap should match in playerToPosition"
+        );
 
-        require(charlieRow >= 0 && charlieCol >= 0, "Charlie position must be >= 0");
-        require(charlieRow <= 127 && charlieCol <= 127, "Charlie position must be <= Grid Size");
-        require(_charlieCurrentAnimalId == charlieCurrentAnimalId, "Charlie current animal Id in safariMap should match in playerToPosition");
+        require(
+            charlieRow >= 0 && charlieCol >= 0,
+            "Charlie position must be >= 0"
+        );
+        require(
+            charlieRow <= 127 && charlieCol <= 127,
+            "Charlie position must be <= Grid Size"
+        );
+        require(
+            _charlieCurrentAnimalId == charlieCurrentAnimalId,
+            "Charlie current animal Id in safariMap should match in playerToPosition"
+        );
 
         console.log("Alice: ", aliceRow, aliceCol);
         console.log("Bob: ", bobRow, bobCol);
         console.log("Charlie: ", charlieRow, charlieCol);
 
-        require(!(aliceRow == bobRow && aliceCol == bobCol) && !(bobRow == charlieRow && bobCol == charlieCol), "Should not occupy same cell");
+        require(
+            !(aliceRow == bobRow && aliceCol == bobCol) &&
+                !(bobRow == charlieRow && bobCol == charlieCol),
+            "Should not occupy same cell"
+        );
     }
 
     function testFailMaxSupplyReached() public {
@@ -260,9 +306,14 @@ contract SafariBangTest is Test {
             .find();
 
         uint160 ownerOfTokenIdOne = uint160(
-                uint256(
-                    (vm.load(address(safariBang), bytes32(abi.encode(slotOfNewOwner))))
+            uint256(
+                (
+                    vm.load(
+                        address(safariBang),
+                        bytes32(abi.encode(slotOfNewOwner))
+                    )
                 )
+            )
         );
         assertEq(address(ownerOfTokenIdOne), Alice);
     }
@@ -279,7 +330,7 @@ contract SafariBangTest is Test {
         uint256 balanceFirstMint = uint256(
             vm.load(address(safariBang), bytes32(slotBalance))
         );
-        assertEq(balanceFirstMint,1);
+        assertEq(balanceFirstMint, 1);
 
         safariBang.mintTo{value: 0.08 ether}(Alice);
 
@@ -298,7 +349,9 @@ contract SafariBangTest is Test {
             .with_key(address(receiver))
             .find();
 
-        uint256 balance = uint256(vm.load(address(safariBang), bytes32(slotBalance)));
+        uint256 balance = uint256(
+            vm.load(address(safariBang), bytes32(slotBalance))
+        );
         assertEq(balance, 1);
     }
 
