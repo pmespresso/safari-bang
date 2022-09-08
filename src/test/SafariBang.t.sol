@@ -161,7 +161,7 @@ contract SafariBangTest is Test {
 
     function testMintWhileGameInSession() public {
         vm.warp(0);
-
+        
         safariBang.rebirth();
 
         uint256 newMintingPeriodStartTime = safariBang.mintingPeriodStartTime();
