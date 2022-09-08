@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: CC0
+pragma solidity 0.8.16;
 
 import "../SafariBang.sol";
 import "./mocks/MockVRFCoordinatorV2.sol";

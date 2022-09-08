@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
-
+// SPDX-License-Identifier: CC0
+pragma solidity 0.8.16;
 import "chainlink-brownie-contracts/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 interface ISafariBang {
